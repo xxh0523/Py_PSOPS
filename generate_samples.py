@@ -1,6 +1,6 @@
 from gym_psops.envs.env_OPF import worker_opf
 from sample_generator.sample_generator import SampleGenerator, plot_dots, plot_show
-from gym_psops.envs.psops.api_psops import psopsAPI
+from gym_psops.envs.psops.py_psops import Py_PSOPS
 from ray.state import current_node_id
 from sample_generator import RayWorkerForSampleGenerator, sample_generator
 from sample_generator import read_result
@@ -20,7 +20,12 @@ def grid_sampler_for_st_gcn():
 if __name__ == '__main__':
     ct = -time.time()
 
-    # worker = SampleGenerator(18, 1)
+    worker = SampleGenerator(0, 1)
+    # worker.ts_sampler_simple_random_for_gen_6(gen_no=0, num=5000, cut_length=301, limit_angle_range=False,
+                                            #   result_path='./00saved_results/samples/generator_6/300_gen30_deltaOmega_5000_nolimit_samples_gen_6')
+    worker.ts_sampler_simple_random_for_avr_1(gen_no=1, num=5000, cut_length=1001, limit_angle_range=False,
+                                              result_path='/home/xiaotannan/pythonPS/00saved_results/samples/avr_1/1000_gen31_5000_nolimit_samples_avr_1')
+
     # # worker.ts_sampler_simple_random(10)
     # for i in range(40):
     #     worker.set_seed(i)
@@ -50,14 +55,14 @@ if __name__ == '__main__':
     print(ct)
     np.savez('./sample.npz', results)
     # """
-    # """
+    """
     total_round = 10
     numWorkers = 40
     ray.init(num_cpus=numWorkers, include_webui=False, ignore_reinit_error=True)
     workers = [RayWorkerForSampleGenerator.remote(i, numWorkers) for i in range(numWorkers)]
     stable_num = unstable_num = 0
     for sample_round in range(total_round):
-        cur_result = ray.get([worker.simple_random_sampling.remote(0, 25, sample_round, 50) for worker in workers])
+        cur_result = ray.get([worker.simple_random_sampling.remote(1, 25, sample_round, 50) for worker in workers])
         for result in cur_result:
             stable_num += result[0]
             unstable_num += result[1]
@@ -89,21 +94,21 @@ if __name__ == '__main__':
     #     cur_central[np.where(cur_central > 1.2)] = 1.2
 
     
-    
-    
-    
-    # size = 24
+    # size = 12
     # font1 = {'size': size}
     # mpl.rcParams['xtick.labelsize'] = size
     # mpl.rcParams['ytick.labelsize'] = size
     
-    # training process
-    # training_data = np.load('./results/TD3_opf_0.npz', allow_pickle=True)
-    # train = training_data['train'].reshape(-1,40)
+    # # training process
+    # total_step = 50000
+    # interval = 100
+    # n_processor = 16
+    # training_data = np.load('./00saved_results/models/scopf_agent/shen_20210911/TD3_sopf_0.npz', allow_pickle=True)
+    # train = training_data['train'].reshape(-1,n_processor)
     # eval = training_data['eval']
-    # x = np.arange(1, 50001)
-    # plt.xlim((0, 50000))
-    # plt.ylim((-4000, 1000))
+    # x = np.arange(1, total_step+1)
+    # plt.xlim((0, total_step))
+    # plt.ylim((-1000, 1000))
     # plt.xlabel('Training Step', fontdict=font1)
     # plt.ylabel('Average Reward', fontdict=font1)
     # plt.tick_params(labelsize=size)
@@ -114,36 +119,39 @@ if __name__ == '__main__':
     #     #         s = 5,
     #     #         c = 'b',
     #     #         alpha=0.01)
-    # avg /= 40
+    # avg /= n_processor
     # plt.scatter(x, avg,
     #             s = 5,
     #             label="training", 
     #             c = 'b',
     #             )
-    # x = np.arange(0, 50001, 50)
+    # x = np.arange(0, total_step+1, interval)
     # avg = np.zeros(eval.shape[0])
     # for i in range(eval.shape[1]): avg += eval[:, i]
-    # avg /= 400
+    # avg /= n_processor * 10
     # plt.plot(x, avg,
     #          label="evaluation", 
     #          color = 'r',
     #          )
+    # plt.savefig('./00saved_results/models/scopf_agent/shen_20210911/training.jpg', dpi=300, format='jpg')
 
     # comparation with PSO
+    # n_sample = 1000
+    # ylimit = 48000
     # compare_data = np.load('./eval_compare/results.npz', allow_pickle=True)
     # rl = compare_data['rl']
     # pso = compare_data['pso']
     # fail = np.where(rl > 100000.)[0]
-    # print(f'{fail.shape[0]/100.}% rl control failed')
+    # print(f'{fail.shape[0]} rl control failed')
     # success = np.where(rl < 100000.)[0]
     # diff = ((rl - pso) / pso * 100.)[success]
     # print(f'avg diff {sum(diff) / success.shape[0]}%')
     # print(f'min diff {min(diff)}%')
     # print(f'max diff {max(diff)}%')
     # # plot difference
-    # x = np.arange(0, 10000)
-    # plt.xlim((0, 10000))
-    # plt.ylim((0, 48000))
+    # x = np.arange(0, n_sample)
+    # plt.xlim((0, n_sample))
+    # plt.ylim((0, ylimit))
     # plt.xlabel('Evaluation Sample', fontdict=font1)
     # plt.ylabel('Generation Cost($/h)', fontdict=font1)
     # plt.tick_params(labelsize=size)

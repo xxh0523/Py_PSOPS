@@ -1,17 +1,18 @@
-"""
-Modified from https://github.com/modestyachts/ARS/blob/master/code/ars.py
-"""
 from ast import dump
-from numba.core.types.npytypes import NumpyFlatType
+import math
+import pathlib
 from numpy.core.arrayprint import dtype_is_implied
 import ray
 import collections
 import pickle
+from sklearn.model_selection import train_test_split
 
 from ray.worker import init
+from redis.client import dict_merge
+from torch._C import ConcreteModuleTypeBuilder, dtype
 from gym_psops.envs import opf_Env
 from gym_psops.envs import sopf_Env
-from gym_psops.envs.psops import psopsAPI
+from gym_psops.envs.psops import Py_PSOPS
 import numpy as np
 import time
 import matplotlib as mpl
@@ -184,7 +185,7 @@ class SampleGenerator:
         self.totalWorker = total_worker
         self.__rng = np.random.default_rng(4242 + self.workerNo * 64)
         # self.__rng = np.random.default_rng()
-        self.__api = psopsAPI(flg=self.workerNo, rng=self.__rng)
+        self.__api = Py_PSOPS(flg=self.workerNo, rng=self.__rng)
         # self.env = sopf_Env(rng=self.__rng, test_on=True)
         # self.env.set_flg(worker_no)
 
@@ -241,7 +242,7 @@ class SampleGenerator:
                 if api.get_acsystem_number() == api.get_n_acsystem_check_connectivity(0):
                     api.set_rebuild_all_network_data()
                     # check load flow after fault clearing
-                    if (api.cal_pf_basic_power_flow_nr()):########################################################################################################################################################################
+                    if (api.cal_pf_basic_power_flow_nr() > 0):########################################################################################################################################################################
                         sample_dict['w_{}_r_{}_pf_{}_fault_{}_fault_info'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_acline_info(acline_no)
                         sample_dict['w_{}_r_{}_pf_{}_fault_{}_y_clear'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_admittance_matrix_full(0)
                         sample_dict['w_{}_r_{}_pf_{}_fault_{}_z_clear'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_impedance_matrix_full(0)
@@ -294,7 +295,7 @@ class SampleGenerator:
         
         # print('data generation finished.')
         print('number of stable vs unstable: {} vs {}'.format(stable_sample, unstable_sample))
-        location = '../results/20210516_cut0_nolimit/'
+        location = '../results/20210516_cut1_nolimit/'
         if not os.path.exists(location):
             os.makedirs(location)
         f = open(location + 'sample_{}_{}.sp'.format(self.workerNo, sample_round), 'wb')
@@ -310,12 +311,300 @@ class SampleGenerator:
         for i in range(num):
             api.get_pf_sample_simple_random(check_slack=check_slack, check_voltage=check_voltage)
             acline_no = self.__rng.choice(aclines)
+            api.set_fault_disturbance_clear_all()
             api.set_fault_add_acline(0, 0, 0.0, 0.1, acline_no)
             api.set_fault_add_acline(1, 0, 0.1, 10., acline_no)
             api.cal_ts_simulation_ti_sv()
             curves.append(api.get_generator_all_ts_result()[:, :, 0])
         curves = np.array(curves, dtype=object)
         np.savez('../results/sample_for_mark.npz', gen_name=gen_name, curves=curves)
+    
+    def pf_sampler_for_Ivy(self, num):
+        api = self.__api
+        api.get_pf_sample_simple_random()
+        return
+
+    def ts_sampler_simple_random_for_gen_0(self, gen_no, result_path, num=1, test_per=0.2, cut_length=None, limit_angle_range=False):
+        api = self.__api
+        
+        result_path = pathlib.Path(result_path)
+        if not result_path.exists(): result_path.mkdir()
+        print(str(result_path.absolute()))
+
+        aclines = np.arange(api.get_acline_number())
+        total_step = api.get_info_ts_max_step()
+        cut_length = total_step if cut_length is None or cut_length > total_step else cut_length
+        t = np.ones([num, cut_length, 1], dtype=np.float32) * -1
+        mask = np.zeros([num, cut_length, 1], dtype=np.float32)
+        x = np.zeros([num, cut_length, 4], dtype=np.float32)
+        z1 = np.zeros([num, cut_length, 1], dtype=np.float32)
+        y = np.zeros([num, cut_length, 2], dtype=np.float32)
+        z2 = np.zeros([num, cut_length, 2], dtype=np.float32)
+        event_t = np.zeros([num, 3], dtype=np.float32)
+        z1_jump = np.zeros([num, 3, 1], dtype = np.float32)
+        z2_jump = np.zeros([num, 3, 2], dtype = np.float32)
+
+        sampled = 0
+        while sampled < num:
+            samples = api.get_pf_sample_stepwise(num=num)
+            # samples = api.get_pf_sample_simple_random(num=num)
+            for sample in samples:
+                api.set_pf_initiation(sample)
+                api.cal_pf_basic_power_flow_nr()
+                acline_no = self.__rng.choice(aclines)
+                loc =  self.__rng.choice([0, 100])
+                api.set_fault_disturbance_clear_all()
+                api.set_fault_add_acline(0, loc, 0.1, 0.2, acline_no)
+                api.set_fault_add_acline(1, loc, 0.2, 10., acline_no)
+                fin_step = api.cal_ts_simulation_ti_sv()
+                if cut_length is not None and fin_step < cut_length: continue
+                fin_step = cut_length if fin_step > cut_length else fin_step
+                # get results
+                result_all = api.get_acsystem_all_ts_result()[0]
+                # check max delta
+                if limit_angle_range and np.any(result_all[:fin_step, 1] > 180.): continue
+                # time step
+                t[sampled, :fin_step, 0] = result_all[:fin_step, 0]
+                # masks
+                mask[sampled, :fin_step, 0] = 1.
+                # state variables
+                result = api.get_generator_ts_all_step_result(gen_no, need_inner_e=True)
+                result[:, 0] /= 180. / math.pi
+                result[:, 1] = result[:, 1] - 50
+                result[:, 3] /= 180. / math.pi
+                x[sampled, :fin_step, 0] = result[:fin_step, 0]
+                x[sampled, :fin_step, 1] = result[:fin_step, 1]
+                x[sampled, :fin_step, 2] = 0.0
+                x[sampled, :fin_step, 3] = result[:fin_step, 6]
+                # voltages and power
+                # z1[sample_no, :fin_step, 0] = result[:fin_step, 2] * np.cos(result[:fin_step, 3])
+                # z1[sample_no, :fin_step, 1] = result[:fin_step, 2] * np.sin(result[:fin_step, 3])
+                z1[sampled, :fin_step, 0] = result[:fin_step, 4]
+                # z1[sample_no, :fin_step, 3] = result[:fin_step, 5]
+                z2[sampled, :fin_step, 0] = result[:fin_step, 2] * np.cos(result[:fin_step, 3])
+                z2[sampled, :fin_step, 1] = result[:fin_step, 2] * np.sin(result[:fin_step, 3])
+                v = z2[sampled, :fin_step, :2]
+                # inject currents
+                y[sampled, :fin_step, 0] = (result[:fin_step, 4] * v[:fin_step, 0] + result[:fin_step, 5] * v[:fin_step, 1]) / (v[:fin_step, 0] * v[:fin_step, 0] + v[:fin_step, 1] * v[:fin_step, 1])
+                y[sampled, :fin_step, 1] = (result[:fin_step, 4] * v[:fin_step, 1] - result[:fin_step, 5] * v[:fin_step, 0]) / (v[:fin_step, 0] * v[:fin_step, 0] + v[:fin_step, 1] * v[:fin_step, 1])
+                # event time
+                event_t[sampled] = api.get_info_fault_time_sequence()
+                # event data
+                e_step = api.get_info_fault_step_sequence()
+                for flt_no in range(len(e_step)):
+                    e_step += 1
+                    api.set_info_ts_step_element_state(e_step[flt_no], is_real_step=False)
+                    tmp_re = api.get_generator_ts_cur_step_result(gen_no, rt=True)
+                    tmp_re[3] /= 180. / math.pi
+                    # z1_jump[sampled][flt_no][0] = tmp_re[2] * np.cos(tmp_re[3])
+                    # z1_jump[sampled][flt_no][1] = tmp_re[2] * np.sin(tmp_re[3])
+                    z1_jump[sampled][flt_no][0] = tmp_re[4]
+                    # z1_jump[sampled][flt_no][3] = tmp_re[5]
+                    z2_jump[sampled][flt_no][0] = tmp_re[2] * np.cos(tmp_re[3])
+                    z2_jump[sampled][flt_no][1] = tmp_re[2] * np.sin(tmp_re[3])
+                sampled += 1
+                if sampled >= num: break
+
+        total_idx = np.arange(num)
+        train_idx, test_idx = train_test_split(total_idx, test_size=test_per)
+        
+        data_name = [
+            ['Rotor Angle', 'Rad.'],
+            ['Omega', 'p.u.'],
+            ['Ed', 'p.u.'],
+            ['Eq', 'p.u.'],
+            # ['Epie', 'p.u.'],
+            ['Ix', 'p.u.'],
+            ['Iy', 'p.u.']
+            ]
+        np.savez(result_path / 'full.npz', name=data_name, t=t, x=x, z1=z1, y=y, z2=z2, event_t=event_t, z1_jump=z1_jump, z2_jump=z2_jump, mask=mask)
+        np.savez(result_path / 'training.npz', name=data_name, t=t[train_idx], x=x[train_idx], z1=z1[train_idx], y=y[train_idx], z2=z2[train_idx], 
+                                               event_t=event_t[train_idx], z1_jump=z1_jump[train_idx], z2_jump=z2_jump[train_idx], mask=mask[train_idx])
+        np.savez(result_path / 'testing.npz', name=data_name, t=t[test_idx], x=x[test_idx], z1=z1[test_idx], y=y[test_idx], z2=z2[test_idx], 
+                                              event_t=event_t[test_idx], z1_jump=z1_jump[test_idx], z2_jump=z2_jump[test_idx], mask=mask[test_idx])
+    
+    def ts_sampler_simple_random_for_gen_6(self, gen_no, result_path, num=1, test_per=0.2, cut_length=None, limit_angle_range=False):
+        api = self.__api
+        
+        result_path = pathlib.Path(result_path)
+        if not result_path.exists(): result_path.mkdir()
+        print(str(result_path.absolute()))
+
+        aclines = np.arange(api.get_acline_number())
+        total_step = api.get_info_ts_max_step()
+        total_step = min(total_step, cut_length) if cut_length is not None else total_step
+        t = np.ones([num, total_step, 1], dtype=np.float32) * -1
+        mask = np.zeros([num, total_step, 1], dtype=np.float32)
+        x = np.zeros([num, total_step, 3], dtype=np.float32)
+        z1 = np.zeros([num, total_step, 2], dtype=np.float32)
+        y = np.zeros([num, total_step, 2], dtype=np.float32)
+        z2 = np.zeros([num, total_step, 2], dtype=np.float32)
+        event_t = np.zeros([num, 3], dtype=np.float32)
+        z1_jump = np.zeros([num, 3, 2], dtype = np.float32)
+        z2_jump = np.zeros([num, 3, 2], dtype = np.float32)
+
+        sampled = 0
+        while sampled < num:
+            samples = api.get_pf_sample_stepwise(num=num)
+            # samples = api.get_pf_sample_simple_random(num=num)
+            for sample in samples:
+                api.set_pf_initiation(sample)
+                api.cal_pf_basic_power_flow_nr()
+                acline_no = self.__rng.choice(aclines)
+                loc =  self.__rng.choice([0, 100])
+                api.set_fault_disturbance_clear_all()
+                api.set_fault_add_acline(0, loc, 1.1, 1.2, acline_no)
+                api.set_fault_add_acline(1, loc, 1.2, 10., acline_no)
+                fin_step = api.cal_ts_simulation_ti_sv()
+                if cut_length is not None:
+                    if fin_step < cut_length: continue
+                    if fin_step > cut_length: fin_step = cut_length
+                # get results
+                result_all = api.get_acsystem_all_ts_result()[0]
+                # check max delta
+                if limit_angle_range and np.any(result_all[:fin_step, 1] > 360.): continue
+                # time step
+                t[sampled, :fin_step, 0] = result_all[:fin_step, 0]
+                # masks
+                mask[sampled, :fin_step, 0] = 1.
+                # state variables
+                result = api.get_generator_ts_all_step_result(gen_no, need_inner_e=True)
+                if np.any(result != result): continue
+                result[:, 0] /= 180. / math.pi
+                result[:, 1] = result[:, 1] - 50
+                result[:, 3] /= 180. / math.pi
+                x[sampled, :fin_step, 0] = result[:fin_step, 0]
+                x[sampled, :fin_step, 1] = result[:fin_step, 1]
+                x[sampled, :fin_step, 2] = 0.0
+                # x[sampled, :fin_step, 2] = result[:fin_step, 7]
+                # x[sampled, :fin_step, 3] = result[:fin_step, 6]
+                # x[sampled, :fin_step, 2] = result[:fin_step, 8]
+                # x[sampled, :fin_step, 3] = result[:fin_step, 9]
+                # voltages and power
+                # z1[sample_no, :fin_step, 0] = result[:fin_step, 2] * np.cos(result[:fin_step, 3])
+                # z1[sample_no, :fin_step, 1] = result[:fin_step, 2] * np.sin(result[:fin_step, 3])
+                z1[sampled, :fin_step, 0] = result[:fin_step, 4]
+                z1[sampled, :fin_step, 1] = result[:fin_step, 5]
+                z2[sampled, :fin_step, 0] = result[:fin_step, 2] * np.cos(result[:fin_step, 3])
+                z2[sampled, :fin_step, 1] = result[:fin_step, 2] * np.sin(result[:fin_step, 3])
+                v = z2[sampled, :fin_step, :2]
+                # inject currents
+                y[sampled, :fin_step, 0] = (result[:fin_step, 4] * v[:fin_step, 0] + result[:fin_step, 5] * v[:fin_step, 1]) / (v[:fin_step, 0] * v[:fin_step, 0] + v[:fin_step, 1] * v[:fin_step, 1])
+                y[sampled, :fin_step, 1] = (result[:fin_step, 4] * v[:fin_step, 1] - result[:fin_step, 5] * v[:fin_step, 0]) / (v[:fin_step, 0] * v[:fin_step, 0] + v[:fin_step, 1] * v[:fin_step, 1])
+                # event time
+                event_t[sampled] = api.get_info_fault_time_sequence()
+                # event data
+                e_step = api.get_info_fault_step_sequence()
+                for flt_no in range(len(e_step)):
+                    e_step += 1
+                    api.set_info_ts_step_element_state(e_step[flt_no], is_real_step=False)
+                    tmp_re = api.get_generator_ts_cur_step_result(gen_no, rt=True)
+                    if np.any(tmp_re != tmp_re): continue
+                    tmp_re[3] /= 180. / math.pi
+                    # z1_jump[sampled][flt_no][0] = tmp_re[2] * np.cos(tmp_re[3])
+                    # z1_jump[sampled][flt_no][1] = tmp_re[2] * np.sin(tmp_re[3])
+                    z1_jump[sampled][flt_no][0] = tmp_re[4]
+                    z1_jump[sampled][flt_no][1] = tmp_re[5]
+                    z2_jump[sampled][flt_no][0] = tmp_re[2] * np.cos(tmp_re[3])
+                    z2_jump[sampled][flt_no][1] = tmp_re[2] * np.sin(tmp_re[3])
+                sampled += 1
+                if sampled >= num: break
+
+        total_idx = np.arange(num)
+        train_idx, test_idx = train_test_split(total_idx, test_size=test_per)
+        
+        data_name = [
+            ['Rotor Angle', 'Rad.'],
+            ['Omega', 'p.u.'],
+            ['E_pie', 'p.u.'],
+            # ['Ed', 'p.u.'],
+            # ['Eq', 'p.u.'],
+            # ['Ed\'', 'p.u.'],
+            # ['Eq\'', 'p.u.'],
+            # ['Ed\'\'', 'p.u.'],
+            # ['Eq\'\'', 'p.u.'],
+            ['Ix', 'p.u.'],
+            ['Iy', 'p.u.']
+            ]
+        np.savez(result_path / 'full.npz', name=data_name, t=t, x=x, z1=z1, y=y, z2=z2, event_t=event_t, z1_jump=z1_jump, z2_jump=z2_jump, mask=mask)
+        np.savez(result_path / 'training.npz', name=data_name, t=t[train_idx], x=x[train_idx], z1=z1[train_idx], y=y[train_idx], z2=z2[train_idx], 
+                                               event_t=event_t[train_idx], z1_jump=z1_jump[train_idx], z2_jump=z2_jump[train_idx], mask=mask[train_idx])
+        np.savez(result_path / 'testing.npz', name=data_name, t=t[test_idx], x=x[test_idx], z1=z1[test_idx], y=y[test_idx], z2=z2[test_idx], 
+                                              event_t=event_t[test_idx], z1_jump=z1_jump[test_idx], z2_jump=z2_jump[test_idx], mask=mask[test_idx])
+    
+    def ts_sampler_simple_random_for_avr_1(self, gen_no, result_path, num=1, test_per=0.2, cut_length=None, limit_angle_range=False):
+        api = self.__api
+        
+        result_path = pathlib.Path(result_path)
+        if not result_path.exists(): result_path.mkdir()
+        print(str(result_path.absolute()))
+
+        aclines = np.arange(api.get_acline_number())
+        total_step = api.get_info_ts_max_step()
+        total_step = min(total_step, cut_length) if cut_length is not None else total_step
+        t = np.ones([num, total_step, 1], dtype=np.float32) * -1
+        mask = np.zeros([num, total_step, 1], dtype=np.float32)
+        x = np.zeros([num, total_step, 1], dtype=np.float32)
+        z = np.zeros([num, total_step, 2], dtype=np.float32)
+        event_t = np.zeros([num, 3], dtype=np.float32)
+        z_jump = np.zeros([num, 3, 2], dtype = np.float32)
+
+        sampled = 0
+        while sampled < num:
+            samples = api.get_pf_sample_stepwise(num=num)
+            for sample in samples:
+                api.set_pf_initiation(sample)
+                api.cal_pf_basic_power_flow_nr()
+                acline_no = self.__rng.choice(aclines)
+                loc =  self.__rng.choice([0, 100])
+                api.set_fault_disturbance_clear_all()
+                api.set_fault_add_acline(0, loc, 1.0, 1.2, acline_no)
+                api.set_fault_add_acline(1, loc, 1.2, 10., acline_no)
+                fin_step = api.cal_ts_simulation_ti_sv()
+                if cut_length is not None:
+                    if fin_step < cut_length: continue
+                    if fin_step > cut_length: fin_step = cut_length
+                # get results
+                result_all = api.get_acsystem_all_ts_result()[0]
+                # check max delta
+                if limit_angle_range and np.any(result_all[:fin_step, 1] > 360.): continue
+                # time step
+                t[sampled, :fin_step, 0] = result_all[:fin_step, 0]
+                # masks
+                mask[sampled, :fin_step, 0] = 1.
+                # state variables
+                # result_gen = api.get_generator_ts_all_step_result(gen_no, need_inner_e=False)
+                result = api.get_generator_exciter_ts_all_step_result(gen_no)
+                if np.any(result != result): continue
+                x[sampled, :fin_step, 0] = result[:fin_step, -1]
+                # voltages and vs
+                z[sampled, :fin_step, 0] = result[:fin_step, 0]
+                z[sampled, :fin_step, 1] = result[:fin_step, -2]
+                # event time
+                event_t[sampled] = api.get_info_fault_time_sequence()
+                # event data
+                e_step = api.get_info_fault_step_sequence()
+                for flt_no in range(len(e_step)):
+                    e_step += 1
+                    api.set_info_ts_step_element_state(e_step[flt_no], is_real_step=False)
+                    tmp_re = api.get_generator_exciter_ts_cur_step_result(gen_no, rt=True)
+                    if np.any(tmp_re != tmp_re): continue
+                    z_jump[sampled][flt_no][0] = tmp_re[0]
+                    z_jump[sampled][flt_no][1] = tmp_re[-2]
+                sampled += 1
+                if sampled >= num: break
+
+        total_idx = np.arange(num)
+        train_idx, test_idx = train_test_split(total_idx, test_size=test_per)
+        
+        data_name = [
+            ['Efd', 'p.u.']
+            ]
+        np.savez(result_path / 'full.npz', name=data_name, t=t, x=x, z=z, event_t=event_t, z_jump=z_jump, mask=mask)
+        np.savez(result_path / 'training.npz', name=data_name, t=t[train_idx], x=x[train_idx], z=z[train_idx],  
+                                               event_t=event_t[train_idx], z_jump=z_jump[train_idx], mask=mask[train_idx])
+        np.savez(result_path / 'testing.npz', name=data_name, t=t[test_idx], x=x[test_idx], z=z[test_idx], 
+                                              event_t=event_t[test_idx], z_jump=z_jump[test_idx], mask=mask[test_idx])
 
 
 @ray.remote
