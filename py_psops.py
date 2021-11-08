@@ -82,6 +82,9 @@ class Py_PSOPS:
         """        
         print('api for psops deletion successful.')
 
+    def set_random_state(self, rng):
+        self.__rng = rng
+
     def _load_dll(self, dll_path: str):
         """Function of loading the .dll or .so file of PSOPS with ctypes library. Load in all the external functions of PSOPS. 
            Most of the details can be found in the corresponding python functions. 
