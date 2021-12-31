@@ -204,7 +204,7 @@ class SampleGenerator:
         api = self.__api
         cut += 1
         # resume topo
-        api.set_topology_original()
+        api.set_network_topology_original()
         # sample result
         sample_dict = collections.OrderedDict()
         # bus name
@@ -212,25 +212,25 @@ class SampleGenerator:
             sample_dict['bus_name'] = api.get_bus_all_name()
         # topo set
         if (num_disconnect != 0):
-            topo_samples = sample_dict['w_{}_r_{}_topo'.format(self.workerNo, sample_round)] = api.get_topology_sample(num_disconnect)
+            topo_samples = sample_dict['w_{}_r_{}_topo'.format(self.workerNo, sample_round)] = api.get_network_topology_sample(num_disconnect)
             line_disconnect = [ts[0] for ts in topo_samples]
         else:
             sample_dict['w_{}_r_{}_topo'.format(self.workerNo, sample_round)] = None
             line_disconnect = None
         # y, z, factor z init
-        sample_dict['w_{}_r_{}_y_init'.format(self.workerNo, sample_round)] = api.get_admittance_matrix_full(0)
-        sample_dict['w_{}_r_{}_z_init'.format(self.workerNo, sample_round)] = api.get_impedance_matrix_full(0)
-        sample_dict['w_{}_r_{}_factor_z_init'.format(self.workerNo, sample_round)] = api.get_impedance_matrix_factorized(0)
+        sample_dict['w_{}_r_{}_y_init'.format(self.workerNo, sample_round)] = api.get_network_admittance_matrix_full(0)
+        sample_dict['w_{}_r_{}_z_init'.format(self.workerNo, sample_round)] = api.get_network_impedance_matrix_full(0)
+        sample_dict['w_{}_r_{}_factor_z_init'.format(self.workerNo, sample_round)] = api.get_network_impedance_matrix_factorized(0)
         # ========================================================================================================================================================================
         # start pf looping
         n_acline = api.get_acline_number()
         stable_sample = 0
         unstable_sample = 0
-        pf_samples = api.get_pf_sample_simple_random(num=num_pf, check_slack=check_slack, check_voltage=check_voltage)
+        pf_samples = api.get_power_flow_sample_simple_random(num=num_pf, check_slack=check_slack, check_voltage=check_voltage)
         # pf_samples = api.get_pf_sample_stepwise(num=num_pf, check_slack=check_slack, check_voltage=check_voltage)
         for pf, pf_no in zip(pf_samples, range(len(pf_samples))):
             sample_dict['w_{}_r_{}_pf_{}_set'.format(self.workerNo, sample_round, pf_no)] = pf#############################################################################################################
-            api.set_pf_initiation(pf)
+            api.set_power_flow_initiation(pf)
             # --------------------------------------------------------------------------------------------------------------------------------------------------------------------
             # ts loop
             for acline_no in range(n_acline):
@@ -238,60 +238,60 @@ class SampleGenerator:
                 if line_disconnect is not None and acline_no in line_disconnect:
                     continue
                 # check connectivity
-                api.set_acline_connectivity(False, acline_no)
-                if api.get_acsystem_number() == api.get_n_acsystem_check_connectivity(0):
-                    api.set_rebuild_all_network_data()
+                api.set_network_acline_connectivity(False, acline_no)
+                if api.get_acsystem_number() == api.get_network_n_acsystem_check_connectivity(0):
+                    api.set_network_rebuild_all_network_data()
                     # check load flow after fault clearing
-                    if (api.cal_pf_basic_power_flow_nr() > 0):########################################################################################################################################################################
+                    if (api.cal_power_flow_basic_nr() > 0):########################################################################################################################################################################
                         sample_dict['w_{}_r_{}_pf_{}_fault_{}_fault_info'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_acline_info(acline_no)
-                        sample_dict['w_{}_r_{}_pf_{}_fault_{}_y_clear'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_admittance_matrix_full(0)
-                        sample_dict['w_{}_r_{}_pf_{}_fault_{}_z_clear'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_impedance_matrix_full(0)
-                        sample_dict['w_{}_r_{}_pf_{}_fault_{}_factor_z_clear'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_impedance_matrix_factorized(0)
+                        sample_dict['w_{}_r_{}_pf_{}_fault_{}_y_clear'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_network_admittance_matrix_full(0)
+                        sample_dict['w_{}_r_{}_pf_{}_fault_{}_z_clear'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_network_impedance_matrix_full(0)
+                        sample_dict['w_{}_r_{}_pf_{}_fault_{}_factor_z_clear'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_network_impedance_matrix_factorized(0)
                         sample_dict['w_{}_r_{}_pf_{}_fault_{}_pf_clear'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_bus_all_lf_result()
                     else:
                         sample_dict['w_{}_r_{}_pf_{}_fault_{}_fault_info'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_acline_info(acline_no)
-                        sample_dict['w_{}_r_{}_pf_{}_fault_{}_y_clear'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_admittance_matrix_full(0)
-                        sample_dict['w_{}_r_{}_pf_{}_fault_{}_z_clear'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_impedance_matrix_full(0)
-                        sample_dict['w_{}_r_{}_pf_{}_fault_{}_factor_z_clear'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_impedance_matrix_factorized(0)
+                        sample_dict['w_{}_r_{}_pf_{}_fault_{}_y_clear'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_network_admittance_matrix_full(0)
+                        sample_dict['w_{}_r_{}_pf_{}_fault_{}_z_clear'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_network_impedance_matrix_full(0)
+                        sample_dict['w_{}_r_{}_pf_{}_fault_{}_factor_z_clear'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_network_impedance_matrix_factorized(0)
                         sample_dict['w_{}_r_{}_pf_{}_fault_{}_pf_clear'.format(self.workerNo, sample_round, pf_no, acline_no)] = np.zeros([api.get_bus_number(), 6], dtype=np.float32)
                     # ts calculation
-                    api.set_acline_connectivity(True, acline_no)
-                    api.set_rebuild_all_network_data()
-                    api.cal_pf_basic_power_flow_nr()
+                    api.set_network_acline_connectivity(True, acline_no)
+                    api.set_network_rebuild_all_network_data()
+                    api.cal_power_flow_basic_nr()
                     # side i
                     api.set_fault_disturbance_clear_all()########################################################################################################################################################################
-                    api.set_fault_add_acline(0, 0, 0.0, 0.1, acline_no)
-                    api.set_fault_add_acline(1, 0, 0.1, 10., acline_no)
+                    api.set_fault_disturbance_add_acline(0, 0, 0.0, 0.1, acline_no)
+                    api.set_fault_disturbance_add_acline(1, 0, 0.1, 10., acline_no)
                     ########################################################################################################################################################################
-                    ts_step = api.cal_ts_simulation_ti_sv()########################################################################################################################################################################
+                    ts_step = api.cal_transient_stability_simulation_ti_sv()########################################################################################################################################################################
                     # api.get_generator_all_ts_result([0])########################################################################################################################################################################
-                    sample_dict['w_{}_r_{}_pf_{}_fault_{}_i_ts_stable'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.check_stability()
+                    sample_dict['w_{}_r_{}_pf_{}_fault_{}_i_ts_stable'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_transient_stability_check_stability()
                     if sample_dict['w_{}_r_{}_pf_{}_fault_{}_i_ts_stable'.format(self.workerNo, sample_round, pf_no, acline_no)] == True:
                         stable_sample += 1
                     else:
                         unstable_sample += 1
                     sample_dict['w_{}_r_{}_pf_{}_fault_{}_i_ts_autoAna'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_acsystem_all_ts_result()[0, :cut, :]
                     sample_dict['w_{}_r_{}_pf_{}_fault_{}_i_ts_allBus'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_bus_all_ts_result()[:cut, :, :]
-                    sample_dict['w_{}_r_{}_pf_{}_fault_{}_i_ts_y_fault'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_admittance_matrix_full(1)
-                    sample_dict['w_{}_r_{}_pf_{}_fault_{}_i_ts_z_fault'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_impedance_matrix_full(1)
-                    sample_dict['w_{}_r_{}_pf_{}_fault_{}_i_ts_factor_z_fault'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_impedance_matrix_factorized(1)
+                    sample_dict['w_{}_r_{}_pf_{}_fault_{}_i_ts_y_fault'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_network_admittance_matrix_full(1)
+                    sample_dict['w_{}_r_{}_pf_{}_fault_{}_i_ts_z_fault'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_network_impedance_matrix_full(1)
+                    sample_dict['w_{}_r_{}_pf_{}_fault_{}_i_ts_factor_z_fault'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_network_impedance_matrix_factorized(1)
                     # side j
                     api.set_fault_disturbance_clear_all()
-                    api.set_fault_add_acline(0, 100, 0.0, 0.1, acline_no)
-                    api.set_fault_add_acline(1, 100, 0.1, 10., acline_no)
-                    ts_step = api.cal_ts_simulation_ti_sv()
-                    sample_dict['w_{}_r_{}_pf_{}_fault_{}_j_ts_stable'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.check_stability()
+                    api.set_fault_disturbance_add_acline(0, 100, 0.0, 0.1, acline_no)
+                    api.set_fault_disturbance_add_acline(1, 100, 0.1, 10., acline_no)
+                    ts_step = api.cal_transient_stability_simulation_ti_sv()
+                    sample_dict['w_{}_r_{}_pf_{}_fault_{}_j_ts_stable'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_transient_stability_check_stability()
                     if sample_dict['w_{}_r_{}_pf_{}_fault_{}_j_ts_stable'.format(self.workerNo, sample_round, pf_no, acline_no)] == True:
                         stable_sample += 1
                     else:
                         unstable_sample += 1
                     sample_dict['w_{}_r_{}_pf_{}_fault_{}_j_ts_autoAna'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_acsystem_all_ts_result()[0, :cut, :]
                     sample_dict['w_{}_r_{}_pf_{}_fault_{}_j_ts_allBus'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_bus_all_ts_result()[:cut, :, :]
-                    sample_dict['w_{}_r_{}_pf_{}_fault_{}_j_ts_y_fault'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_admittance_matrix_full(1)
-                    sample_dict['w_{}_r_{}_pf_{}_fault_{}_j_ts_z_fault'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_impedance_matrix_full(1)
-                    sample_dict['w_{}_r_{}_pf_{}_fault_{}_j_ts_factor_z_fault'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_impedance_matrix_factorized(1)
+                    sample_dict['w_{}_r_{}_pf_{}_fault_{}_j_ts_y_fault'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_network_admittance_matrix_full(1)
+                    sample_dict['w_{}_r_{}_pf_{}_fault_{}_j_ts_z_fault'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_network_impedance_matrix_full(1)
+                    sample_dict['w_{}_r_{}_pf_{}_fault_{}_j_ts_factor_z_fault'.format(self.workerNo, sample_round, pf_no, acline_no)] = api.get_network_impedance_matrix_factorized(1)
                 else:
-                    api.set_acline_connectivity(True, acline_no)
+                    api.set_network_acline_connectivity(True, acline_no)
         
         # print('data generation finished.')
         print('number of stable vs unstable: {} vs {}'.format(stable_sample, unstable_sample))
@@ -309,19 +309,19 @@ class SampleGenerator:
         gen_name = api.get_generator_all_bus_name()
         curves = list()
         for i in range(num):
-            api.get_pf_sample_simple_random(check_slack=check_slack, check_voltage=check_voltage)
+            api.get_power_flow_sample_simple_random(check_slack=check_slack, check_voltage=check_voltage)
             acline_no = self.__rng.choice(aclines)
             api.set_fault_disturbance_clear_all()
-            api.set_fault_add_acline(0, 0, 0.0, 0.1, acline_no)
-            api.set_fault_add_acline(1, 0, 0.1, 10., acline_no)
-            api.cal_ts_simulation_ti_sv()
+            api.set_fault_disturbance_add_acline(0, 0, 0.0, 0.1, acline_no)
+            api.set_fault_disturbance_add_acline(1, 0, 0.1, 10., acline_no)
+            api.cal_transient_stability_simulation_ti_sv()
             curves.append(api.get_generator_all_ts_result()[:, :, 0])
         curves = np.array(curves, dtype=object)
         np.savez('../results/sample_for_mark.npz', gen_name=gen_name, curves=curves)
     
     def pf_sampler_for_Ivy(self, num):
         api = self.__api
-        api.get_pf_sample_simple_random()
+        api.get_power_flow_sample_simple_random()
         return
 
     def ts_sampler_simple_random_for_gen_0(self, gen_no, result_path, num=1, test_per=0.2, cut_length=None, limit_angle_range=False):
@@ -332,61 +332,73 @@ class SampleGenerator:
         print(str(result_path.absolute()))
 
         aclines = np.arange(api.get_acline_number())
-        total_step = api.get_info_ts_max_step()
-        cut_length = total_step if cut_length is None or cut_length > total_step else cut_length
-        t = np.ones([num, cut_length, 1], dtype=np.float32) * -1
-        mask = np.zeros([num, cut_length, 1], dtype=np.float32)
-        x = np.zeros([num, cut_length, 4], dtype=np.float32)
-        z1 = np.zeros([num, cut_length, 1], dtype=np.float32)
-        y = np.zeros([num, cut_length, 2], dtype=np.float32)
-        z2 = np.zeros([num, cut_length, 2], dtype=np.float32)
+        total_length = api.get_info_ts_max_step() if cut_length is None else cut_length
+        t = np.ones([num, total_length, 1], dtype=np.float32) * -1
+        mask = np.zeros([num, total_length, 1], dtype=np.float32)
+        x = np.zeros([num, total_length, 2], dtype=np.float32)
+        z = np.zeros([num, total_length, 0], dtype=np.float32)
+        v = np.zeros([num, total_length, 2], dtype=np.float32)
+        i = np.zeros([num, total_length, 2], dtype=np.float32)
         event_t = np.zeros([num, 3], dtype=np.float32)
-        z1_jump = np.zeros([num, 3, 1], dtype = np.float32)
-        z2_jump = np.zeros([num, 3, 2], dtype = np.float32)
+        z_jump = np.zeros([num, 3, 0], dtype = np.float32)
+        v_jump = np.zeros([num, 3, 2], dtype = np.float32)
 
         sampled = 0
+        stable_sample_num = 0
+        unstable_sample_num = 0
         while sampled < num:
-            samples = api.get_pf_sample_stepwise(num=num)
+            samples = api.get_power_flow_sample_stepwise(num=num)
             # samples = api.get_pf_sample_simple_random(num=num)
             for sample in samples:
-                api.set_pf_initiation(sample)
-                api.cal_pf_basic_power_flow_nr()
+                api.set_power_flow_initiation(sample)
+                api.cal_power_flow_basic_nr()
                 acline_no = self.__rng.choice(aclines)
                 loc =  self.__rng.choice([0, 100])
                 api.set_fault_disturbance_clear_all()
-                api.set_fault_add_acline(0, loc, 0.1, 0.2, acline_no)
-                api.set_fault_add_acline(1, loc, 0.2, 10., acline_no)
-                fin_step = api.cal_ts_simulation_ti_sv()
-                if cut_length is not None and fin_step < cut_length: continue
-                fin_step = cut_length if fin_step > cut_length else fin_step
+                api.set_fault_disturbance_add_acline(0, loc, 0.5, 0.6, acline_no)
+                api.set_fault_disturbance_add_acline(1, loc, 0.6, 10., acline_no)
+                fin_step = api.cal_transient_stability_simulation_ti_sv()
+                if cut_length is not None:
+                    if fin_step < cut_length: continue
+                    fin_step = cut_length if fin_step > cut_length else fin_step
                 # get results
                 result_all = api.get_acsystem_all_ts_result()[0]
+                result = api.get_generator_ts_all_step_result(gen_no, need_inner_e=True)
+                if np.any(result != result): continue
                 # check max delta
-                if limit_angle_range and np.any(result_all[:fin_step, 1] > 180.): continue
+                # if limit_angle_range and np.any(result_all[:fin_step, 1] > 180.): continue
+                if limit_angle_range:
+                    if np.max(np.abs(result_all[:fin_step, 1])) > 180.:
+                        if unstable_sample_num < num * 0.5: 
+                            unstable_sample_num += 1
+                            if np.max(np.abs(result_all[:fin_step, 1])) > 1080.:
+                                fin_step = np.where(np.abs(result_all[:fin_step, 1]) > 1080.)[0][0]
+                        else: continue
+                    else:
+                        if stable_sample_num < num * 0.5: stable_sample_num += 1
+                        else: continue
                 # time step
                 t[sampled, :fin_step, 0] = result_all[:fin_step, 0]
                 # masks
                 mask[sampled, :fin_step, 0] = 1.
                 # state variables
-                result = api.get_generator_ts_all_step_result(gen_no, need_inner_e=True)
                 result[:, 0] /= 180. / math.pi
-                result[:, 1] = result[:, 1] - 50
+                result[:, 1] = (result[:, 1] - 50)
                 result[:, 3] /= 180. / math.pi
                 x[sampled, :fin_step, 0] = result[:fin_step, 0]
                 x[sampled, :fin_step, 1] = result[:fin_step, 1]
-                x[sampled, :fin_step, 2] = 0.0
-                x[sampled, :fin_step, 3] = result[:fin_step, 6]
+                # x[sampled, :fin_step, 2] = result[:fin_step, 6]
                 # voltages and power
                 # z1[sample_no, :fin_step, 0] = result[:fin_step, 2] * np.cos(result[:fin_step, 3])
                 # z1[sample_no, :fin_step, 1] = result[:fin_step, 2] * np.sin(result[:fin_step, 3])
-                z1[sampled, :fin_step, 0] = result[:fin_step, 4]
+                # z[sampled, :fin_step, 0] = result[:fin_step, 4]
                 # z1[sample_no, :fin_step, 3] = result[:fin_step, 5]
-                z2[sampled, :fin_step, 0] = result[:fin_step, 2] * np.cos(result[:fin_step, 3])
-                z2[sampled, :fin_step, 1] = result[:fin_step, 2] * np.sin(result[:fin_step, 3])
-                v = z2[sampled, :fin_step, :2]
+                v[sampled, :fin_step, 0] = result[:fin_step, 2] * np.cos(result[:fin_step, 3])
+                v[sampled, :fin_step, 1] = result[:fin_step, 2] * np.sin(result[:fin_step, 3])
+                vv = v[sampled, :fin_step, :2]
                 # inject currents
-                y[sampled, :fin_step, 0] = (result[:fin_step, 4] * v[:fin_step, 0] + result[:fin_step, 5] * v[:fin_step, 1]) / (v[:fin_step, 0] * v[:fin_step, 0] + v[:fin_step, 1] * v[:fin_step, 1])
-                y[sampled, :fin_step, 1] = (result[:fin_step, 4] * v[:fin_step, 1] - result[:fin_step, 5] * v[:fin_step, 0]) / (v[:fin_step, 0] * v[:fin_step, 0] + v[:fin_step, 1] * v[:fin_step, 1])
+                i[sampled, :fin_step, 0] = (result[:fin_step, 4] * vv[:fin_step, 0] + result[:fin_step, 5] * vv[:fin_step, 1]) / (vv[:fin_step, 0] * vv[:fin_step, 0] + vv[:fin_step, 1] * vv[:fin_step, 1])
+                i[sampled, :fin_step, 1] = (result[:fin_step, 4] * vv[:fin_step, 1] - result[:fin_step, 5] * vv[:fin_step, 0]) / (vv[:fin_step, 0] * vv[:fin_step, 0] + vv[:fin_step, 1] * vv[:fin_step, 1])
                 # event time
                 event_t[sampled] = api.get_info_fault_time_sequence()
                 # event data
@@ -398,10 +410,10 @@ class SampleGenerator:
                     tmp_re[3] /= 180. / math.pi
                     # z1_jump[sampled][flt_no][0] = tmp_re[2] * np.cos(tmp_re[3])
                     # z1_jump[sampled][flt_no][1] = tmp_re[2] * np.sin(tmp_re[3])
-                    z1_jump[sampled][flt_no][0] = tmp_re[4]
+                    # z1_jump[sampled][flt_no][0] = tmp_re[4]
                     # z1_jump[sampled][flt_no][3] = tmp_re[5]
-                    z2_jump[sampled][flt_no][0] = tmp_re[2] * np.cos(tmp_re[3])
-                    z2_jump[sampled][flt_no][1] = tmp_re[2] * np.sin(tmp_re[3])
+                    v_jump[sampled][flt_no][0] = tmp_re[2] * np.cos(tmp_re[3])
+                    v_jump[sampled][flt_no][1] = tmp_re[2] * np.sin(tmp_re[3])
                 sampled += 1
                 if sampled >= num: break
 
@@ -411,17 +423,17 @@ class SampleGenerator:
         data_name = [
             ['Rotor Angle', 'Rad.'],
             ['Omega', 'p.u.'],
-            ['Ed', 'p.u.'],
-            ['Eq', 'p.u.'],
+            # ['Ed', 'p.u.'],
+            # ['Eq', 'p.u.'],
             # ['Epie', 'p.u.'],
             ['Ix', 'p.u.'],
             ['Iy', 'p.u.']
             ]
-        np.savez(result_path / 'full.npz', name=data_name, t=t, x=x, z1=z1, y=y, z2=z2, event_t=event_t, z1_jump=z1_jump, z2_jump=z2_jump, mask=mask)
-        np.savez(result_path / 'training.npz', name=data_name, t=t[train_idx], x=x[train_idx], z1=z1[train_idx], y=y[train_idx], z2=z2[train_idx], 
-                                               event_t=event_t[train_idx], z1_jump=z1_jump[train_idx], z2_jump=z2_jump[train_idx], mask=mask[train_idx])
-        np.savez(result_path / 'testing.npz', name=data_name, t=t[test_idx], x=x[test_idx], z1=z1[test_idx], y=y[test_idx], z2=z2[test_idx], 
-                                              event_t=event_t[test_idx], z1_jump=z1_jump[test_idx], z2_jump=z2_jump[test_idx], mask=mask[test_idx])
+        np.savez(result_path / 'full.npz', name=data_name, t=t, x=x, z=z, v=v, i=i, event_t=event_t, z_jump=z_jump, v_jump=v_jump, mask=mask)
+        np.savez(result_path / 'training.npz', name=data_name, t=t[train_idx], x=x[train_idx], z=z[train_idx], v=v[train_idx], i=i[train_idx], 
+                                               event_t=event_t[train_idx], z_jump=z_jump[train_idx], v_jump=v_jump[train_idx], mask=mask[train_idx])
+        np.savez(result_path / 'testing.npz', name=data_name, t=t[test_idx], x=x[test_idx], z=z[test_idx], v=v[test_idx], i=i[test_idx], 
+                                              event_t=event_t[test_idx], z_jump=z_jump[test_idx], v_jump=v_jump[test_idx], mask=mask[test_idx])
     
     def ts_sampler_simple_random_for_gen_6(self, gen_no, result_path, num=1, test_per=0.2, cut_length=None, limit_angle_range=False):
         api = self.__api
@@ -435,27 +447,27 @@ class SampleGenerator:
         total_step = min(total_step, cut_length) if cut_length is not None else total_step
         t = np.ones([num, total_step, 1], dtype=np.float32) * -1
         mask = np.zeros([num, total_step, 1], dtype=np.float32)
-        x = np.zeros([num, total_step, 3], dtype=np.float32)
-        z1 = np.zeros([num, total_step, 2], dtype=np.float32)
-        y = np.zeros([num, total_step, 2], dtype=np.float32)
-        z2 = np.zeros([num, total_step, 2], dtype=np.float32)
+        x = np.zeros([num, total_step, 6], dtype=np.float32)
+        z = np.zeros([num, total_step, 0], dtype=np.float32)
+        v = np.zeros([num, total_step, 2], dtype=np.float32)
+        i = np.zeros([num, total_step, 2], dtype=np.float32)
         event_t = np.zeros([num, 3], dtype=np.float32)
-        z1_jump = np.zeros([num, 3, 2], dtype = np.float32)
-        z2_jump = np.zeros([num, 3, 2], dtype = np.float32)
+        z_jump = np.zeros([num, 3, 0], dtype = np.float32)
+        v_jump = np.zeros([num, 3, 2], dtype = np.float32)
 
         sampled = 0
         while sampled < num:
-            samples = api.get_pf_sample_stepwise(num=num)
+            samples = api.get_power_flow_sample_stepwise(num=num)
             # samples = api.get_pf_sample_simple_random(num=num)
             for sample in samples:
-                api.set_pf_initiation(sample)
-                api.cal_pf_basic_power_flow_nr()
+                api.set_power_flow_initiation(sample)
+                api.cal_power_flow_basic_nr()
                 acline_no = self.__rng.choice(aclines)
                 loc =  self.__rng.choice([0, 100])
                 api.set_fault_disturbance_clear_all()
-                api.set_fault_add_acline(0, loc, 1.1, 1.2, acline_no)
-                api.set_fault_add_acline(1, loc, 1.2, 10., acline_no)
-                fin_step = api.cal_ts_simulation_ti_sv()
+                api.set_fault_disturbance_add_acline(0, loc, 1.1, 1.2, acline_no)
+                api.set_fault_disturbance_add_acline(1, loc, 1.2, 10., acline_no)
+                fin_step = api.cal_transient_stability_simulation_ti_sv()
                 if cut_length is not None:
                     if fin_step < cut_length: continue
                     if fin_step > cut_length: fin_step = cut_length
@@ -473,24 +485,19 @@ class SampleGenerator:
                 result[:, 0] /= 180. / math.pi
                 result[:, 1] = result[:, 1] - 50
                 result[:, 3] /= 180. / math.pi
-                x[sampled, :fin_step, 0] = result[:fin_step, 0]
-                x[sampled, :fin_step, 1] = result[:fin_step, 1]
-                x[sampled, :fin_step, 2] = 0.0
-                # x[sampled, :fin_step, 2] = result[:fin_step, 7]
-                # x[sampled, :fin_step, 3] = result[:fin_step, 6]
-                # x[sampled, :fin_step, 2] = result[:fin_step, 8]
-                # x[sampled, :fin_step, 3] = result[:fin_step, 9]
-                # voltages and power
-                # z1[sample_no, :fin_step, 0] = result[:fin_step, 2] * np.cos(result[:fin_step, 3])
-                # z1[sample_no, :fin_step, 1] = result[:fin_step, 2] * np.sin(result[:fin_step, 3])
-                z1[sampled, :fin_step, 0] = result[:fin_step, 4]
-                z1[sampled, :fin_step, 1] = result[:fin_step, 5]
-                z2[sampled, :fin_step, 0] = result[:fin_step, 2] * np.cos(result[:fin_step, 3])
-                z2[sampled, :fin_step, 1] = result[:fin_step, 2] * np.sin(result[:fin_step, 3])
-                v = z2[sampled, :fin_step, :2]
+                x[sampled, :fin_step, 0] = result[:fin_step, 0] # delta
+                x[sampled, :fin_step, 1] = result[:fin_step, 1] # omega
+                x[sampled, :fin_step, 2] = result[:fin_step, 7] # Ed'
+                x[sampled, :fin_step, 3] = result[:fin_step, 6] # Eq'
+                x[sampled, :fin_step, 4] = result[:fin_step, 8] # Ed''
+                x[sampled, :fin_step, 5] = result[:fin_step, 9] # Eq''
+                # voltages
+                v[sampled, :fin_step, 0] = result[:fin_step, 2] * np.cos(result[:fin_step, 3])
+                v[sampled, :fin_step, 1] = result[:fin_step, 2] * np.sin(result[:fin_step, 3])
+                vv = v[sampled, :fin_step, :2]
                 # inject currents
-                y[sampled, :fin_step, 0] = (result[:fin_step, 4] * v[:fin_step, 0] + result[:fin_step, 5] * v[:fin_step, 1]) / (v[:fin_step, 0] * v[:fin_step, 0] + v[:fin_step, 1] * v[:fin_step, 1])
-                y[sampled, :fin_step, 1] = (result[:fin_step, 4] * v[:fin_step, 1] - result[:fin_step, 5] * v[:fin_step, 0]) / (v[:fin_step, 0] * v[:fin_step, 0] + v[:fin_step, 1] * v[:fin_step, 1])
+                i[sampled, :fin_step, 0] = (result[:fin_step, 4] * vv[:fin_step, 0] + result[:fin_step, 5] * vv[:fin_step, 1]) / (vv[:fin_step, 0] * vv[:fin_step, 0] + vv[:fin_step, 1] * vv[:fin_step, 1])
+                i[sampled, :fin_step, 1] = (result[:fin_step, 4] * vv[:fin_step, 1] - result[:fin_step, 5] * vv[:fin_step, 0]) / (vv[:fin_step, 0] * vv[:fin_step, 0] + vv[:fin_step, 1] * vv[:fin_step, 1])
                 # event time
                 event_t[sampled] = api.get_info_fault_time_sequence()
                 # event data
@@ -501,12 +508,8 @@ class SampleGenerator:
                     tmp_re = api.get_generator_ts_cur_step_result(gen_no, rt=True)
                     if np.any(tmp_re != tmp_re): continue
                     tmp_re[3] /= 180. / math.pi
-                    # z1_jump[sampled][flt_no][0] = tmp_re[2] * np.cos(tmp_re[3])
-                    # z1_jump[sampled][flt_no][1] = tmp_re[2] * np.sin(tmp_re[3])
-                    z1_jump[sampled][flt_no][0] = tmp_re[4]
-                    z1_jump[sampled][flt_no][1] = tmp_re[5]
-                    z2_jump[sampled][flt_no][0] = tmp_re[2] * np.cos(tmp_re[3])
-                    z2_jump[sampled][flt_no][1] = tmp_re[2] * np.sin(tmp_re[3])
+                    v_jump[sampled][flt_no][0] = tmp_re[2] * np.cos(tmp_re[3])
+                    v_jump[sampled][flt_no][1] = tmp_re[2] * np.sin(tmp_re[3])
                 sampled += 1
                 if sampled >= num: break
 
@@ -516,21 +519,18 @@ class SampleGenerator:
         data_name = [
             ['Rotor Angle', 'Rad.'],
             ['Omega', 'p.u.'],
-            ['E_pie', 'p.u.'],
-            # ['Ed', 'p.u.'],
-            # ['Eq', 'p.u.'],
-            # ['Ed\'', 'p.u.'],
-            # ['Eq\'', 'p.u.'],
-            # ['Ed\'\'', 'p.u.'],
-            # ['Eq\'\'', 'p.u.'],
+            ['Ed\'', 'p.u.'],
+            ['Eq\'', 'p.u.'],
+            ['Ed\'\'', 'p.u.'],
+            ['Eq\'\'', 'p.u.'],
             ['Ix', 'p.u.'],
             ['Iy', 'p.u.']
             ]
-        np.savez(result_path / 'full.npz', name=data_name, t=t, x=x, z1=z1, y=y, z2=z2, event_t=event_t, z1_jump=z1_jump, z2_jump=z2_jump, mask=mask)
-        np.savez(result_path / 'training.npz', name=data_name, t=t[train_idx], x=x[train_idx], z1=z1[train_idx], y=y[train_idx], z2=z2[train_idx], 
-                                               event_t=event_t[train_idx], z1_jump=z1_jump[train_idx], z2_jump=z2_jump[train_idx], mask=mask[train_idx])
-        np.savez(result_path / 'testing.npz', name=data_name, t=t[test_idx], x=x[test_idx], z1=z1[test_idx], y=y[test_idx], z2=z2[test_idx], 
-                                              event_t=event_t[test_idx], z1_jump=z1_jump[test_idx], z2_jump=z2_jump[test_idx], mask=mask[test_idx])
+        np.savez(result_path / 'full.npz', name=data_name, t=t, x=x, z=z, v=v, i=i, event_t=event_t, z_jump=z_jump, v_jump=v_jump, mask=mask)
+        np.savez(result_path / 'training.npz', name=data_name, t=t[train_idx], x=x[train_idx], z=z[train_idx], v=v[train_idx], i=i[train_idx], 
+                                               event_t=event_t[train_idx], z_jump=z_jump[train_idx], v_jump=v_jump[train_idx], mask=mask[train_idx])
+        np.savez(result_path / 'testing.npz', name=data_name, t=t[test_idx], x=x[test_idx], z=z[test_idx], v=v[test_idx], i=i[test_idx], 
+                                              event_t=event_t[test_idx], z_jump=z_jump[test_idx], v_jump=v_jump[test_idx], mask=mask[test_idx])
     
     def ts_sampler_simple_random_for_avr_1(self, gen_no, result_path, num=1, test_per=0.2, cut_length=None, limit_angle_range=False):
         api = self.__api
@@ -551,16 +551,16 @@ class SampleGenerator:
 
         sampled = 0
         while sampled < num:
-            samples = api.get_pf_sample_stepwise(num=num)
+            samples = api.get_power_flow_sample_stepwise(num=num)
             for sample in samples:
-                api.set_pf_initiation(sample)
-                api.cal_pf_basic_power_flow_nr()
+                api.set_power_flow_initiation(sample)
+                api.cal_power_flow_basic_nr()
                 acline_no = self.__rng.choice(aclines)
                 loc =  self.__rng.choice([0, 100])
                 api.set_fault_disturbance_clear_all()
-                api.set_fault_add_acline(0, loc, 1.0, 1.2, acline_no)
-                api.set_fault_add_acline(1, loc, 1.2, 10., acline_no)
-                fin_step = api.cal_ts_simulation_ti_sv()
+                api.set_fault_disturbance_add_acline(0, loc, 1.0, 1.2, acline_no)
+                api.set_fault_disturbance_add_acline(1, loc, 1.2, 10., acline_no)
+                fin_step = api.cal_transient_stability_simulation_ti_sv()
                 if cut_length is not None:
                     if fin_step < cut_length: continue
                     if fin_step > cut_length: fin_step = cut_length
@@ -576,10 +576,11 @@ class SampleGenerator:
                 # result_gen = api.get_generator_ts_all_step_result(gen_no, need_inner_e=False)
                 result = api.get_generator_exciter_ts_all_step_result(gen_no)
                 if np.any(result != result): continue
-                x[sampled, :fin_step, 0] = result[:fin_step, -1]
+                x[sampled, :fin_step, 0] = result[:fin_step, -1] # efd
+                # print(result[:10, -1])
                 # voltages and vs
-                z[sampled, :fin_step, 0] = result[:fin_step, 0]
-                z[sampled, :fin_step, 1] = result[:fin_step, -2]
+                z[sampled, :fin_step, 0] = result[:fin_step, 0] # vt
+                z[sampled, :fin_step, 1] = result[:fin_step, -2] # VS
                 # event time
                 event_t[sampled] = api.get_info_fault_time_sequence()
                 # event data

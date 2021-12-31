@@ -21,10 +21,12 @@ if __name__ == '__main__':
     ct = -time.time()
 
     worker = SampleGenerator(0, 1)
-    # worker.ts_sampler_simple_random_for_gen_6(gen_no=0, num=5000, cut_length=301, limit_angle_range=False,
-                                            #   result_path='./00saved_results/samples/generator_6/300_gen30_deltaOmega_5000_nolimit_samples_gen_6')
-    worker.ts_sampler_simple_random_for_avr_1(gen_no=1, num=5000, cut_length=1001, limit_angle_range=False,
-                                              result_path='/home/xiaotannan/pythonPS/00saved_results/samples/avr_1/1000_gen31_5000_nolimit_samples_avr_1')
+    worker.ts_sampler_simple_random_for_gen_0(gen_no=1, num=4000, cut_length=301, limit_angle_range=True,
+                                              result_path='./00saved_results/samples/generator_epie/300_gen31_p3_all_4000_masked_samples_gen_0')
+    # worker.ts_sampler_simple_random_for_gen_6(gen_no=0, num=4000, cut_length=1001, limit_angle_range=False,
+                                            #   result_path='./00saved_results/samples/generator_6/1000_gen30_all_4000_nolimit_samples_gen_6')
+    # worker.ts_sampler_simple_random_for_avr_1(gen_no=0, num=4000, cut_length=1001, limit_angle_range=False,
+                                            #   result_path='/home/xiaotannan/pythonPS/00saved_results/samples/avr_1/1000_gen30_4000_nolimit_samples_avr_1')
 
     # # worker.ts_sampler_simple_random(10)
     # for i in range(40):

@@ -51,9 +51,10 @@ class Py_PSOPS:
         dll_path = self.__workingDir
         # load .dll or .so
         if platform.system() == 'Windows':
-            dll_path += '/dll_win/PSOPS-Console-QT-V.dll'
+            dll_path += '/dll_win/PSOPS_Source.dll'
         elif platform.system() == 'Linux':
-            dll_path += '/dll_linux/libPSOPS-Console-QT-V.so.1.0.0'
+            # dll_path += '/dll_linux/libPSOPS-Console-QT-V.so.1.0.0'
+            dll_path += '/dll_linux/libPSOPS_Source.so.1.0.0'
         else:
             print('Unknown operating system. Please check!')
             exit(-1)
@@ -112,42 +113,42 @@ class Py_PSOPS:
         self.__psDLL.cal_Functions.restype = c_bool
         # calculation
         # power flow
-        self.__psDLL.cal_PF_Basic_Power_Flow.argtypes = None
-        self.__psDLL.cal_PF_Basic_Power_Flow.restype = c_int
+        self.__psDLL.cal_Power_Flow_Basic_Newton_Raphson.argtypes = None
+        self.__psDLL.cal_Power_Flow_Basic_Newton_Raphson.restype = c_int
         # stability simulation
-        self.__psDLL.cal_TS_Simulation_TI_SV.argtypes = [c_double, c_int]
-        self.__psDLL.cal_TS_Simulation_TI_SV.restype = c_int
+        self.__psDLL.cal_Transient_Stability_Simulation_TI_SV.argtypes = [c_double, c_int]
+        self.__psDLL.cal_Transient_Stability_Simulation_TI_SV.restype = c_int
         # cal info and cal control
-        self.__psDLL.get_LF_Iter.argtypes = [c_int]
-        self.__psDLL.get_LF_Iter.restype = c_int
-        self.__psDLL.get_TE.argtypes = None
-        self.__psDLL.get_TE.restype = c_double
-        self.__psDLL.get_DT.argtypes = None
-        self.__psDLL.get_DT.restype = c_double
-        self.__psDLL.get_Max_Step.argtypes = None
-        self.__psDLL.get_Max_Step.restype = c_int
-        self.__psDLL.get_Finish_Step.argtypes = None
-        self.__psDLL.get_Finish_Step.restype = c_int
-        self.__psDLL.get_Fault_Step_Sequence.argtypes = [array_1d_double, c_int]
-        self.__psDLL.get_Fault_Step_Sequence.restype = c_bool
-        self.__psDLL.get_Fault_Time_Sequence.argtypes = [array_1d_double, c_int]
-        self.__psDLL.get_Fault_Time_Sequence.restype = c_bool
-        self.__psDLL.set_TS_Step_Network_State.argtypes = [c_int, c_bool, c_int]
-        self.__psDLL.set_TS_Step_Network_State.restype = c_bool
-        self.__psDLL.set_TS_Step_Element_State.argtypes = [c_int, c_bool, c_int]
-        self.__psDLL.set_TS_Step_Element_State.restype = c_bool
-        self.__psDLL.set_TS_Step_All_State.argtypes = [c_int, c_bool, c_int]
-        self.__psDLL.set_TS_Step_All_State.restype = c_bool
+        self.__psDLL.get_Info_LF_Iter.argtypes = [c_int]
+        self.__psDLL.get_Info_LF_Iter.restype = c_int
+        self.__psDLL.get_Info_TE.argtypes = None
+        self.__psDLL.get_Info_TE.restype = c_double
+        self.__psDLL.get_Info_DT.argtypes = None
+        self.__psDLL.get_Info_DT.restype = c_double
+        self.__psDLL.get_Info_Max_Step.argtypes = None
+        self.__psDLL.get_Info_Max_Step.restype = c_int
+        self.__psDLL.get_Info_Finish_Step.argtypes = None
+        self.__psDLL.get_Info_Finish_Step.restype = c_int
+        self.__psDLL.get_Info_Fault_Step_Sequence.argtypes = [array_1d_double, c_int]
+        self.__psDLL.get_Info_Fault_Step_Sequence.restype = c_bool
+        self.__psDLL.get_Info_Fault_Time_Sequence.argtypes = [array_1d_double, c_int]
+        self.__psDLL.get_Info_Fault_Time_Sequence.restype = c_bool
+        self.__psDLL.set_Info_TS_Step_Network_State.argtypes = [c_int, c_bool, c_int]
+        self.__psDLL.set_Info_TS_Step_Network_State.restype = c_bool
+        self.__psDLL.set_Info_TS_Step_Element_State.argtypes = [c_int, c_bool, c_int]
+        self.__psDLL.set_Info_TS_Step_Element_State.restype = c_bool
+        self.__psDLL.set_Info_TS_Step_All_State.argtypes = [c_int, c_bool, c_int]
+        self.__psDLL.set_Info_TS_Step_All_State.restype = c_bool
         # asynchronous systems
-        self.__psDLL.get_N_ACSystem.argtypes = None
-        self.__psDLL.get_N_ACSystem.restype = c_int
+        self.__psDLL.get_ACSystem_Number.argtypes = None 
+        self.__psDLL.get_ACSystem_Number.restype = c_int
         self.__psDLL.get_ACSystem_TS_CurStep_Result.argtypes = [array_1d_double, c_int]
         self.__psDLL.get_ACSystem_TS_CurStep_Result.restype = c_bool
         self.__psDLL.get_ACSystem_TS_All_Result.argtypes = [array_1d_double, c_int]
         self.__psDLL.get_ACSystem_TS_All_Result.restype = c_bool
         # bus
-        self.__psDLL.get_N_Bus.argtypes = [c_int]
-        self.__psDLL.get_N_Bus.restype = c_int
+        self.__psDLL.get_Bus_Number.argtypes = [c_int]
+        self.__psDLL.get_Bus_Number.restype = c_int
         self.__psDLL.get_Bus_Name.argtypes = [c_int, c_int]
         self.__psDLL.get_Bus_Name.restype = c_char_p
         self.__psDLL.get_Bus_Sys_No.argtypes = [c_int]
@@ -163,8 +164,8 @@ class Py_PSOPS:
         self.__psDLL.get_Bus_TS_All_Result.argtypes = [array_1d_double, c_int]
         self.__psDLL.get_Bus_TS_All_Result.restype = c_bool
         # acline
-        self.__psDLL.get_N_ACLine.argtypes = [c_int]
-        self.__psDLL.get_N_ACLine.restype = c_int
+        self.__psDLL.get_ACLine_Number.argtypes = [c_int]
+        self.__psDLL.get_ACLine_Number.restype = c_int
         self.__psDLL.get_ACLine_I_No.argtypes = [c_int, c_int]
         self.__psDLL.get_ACLine_I_No.restype = c_int
         self.__psDLL.get_ACLine_J_No.argtypes = [c_int, c_int]
@@ -182,8 +183,8 @@ class Py_PSOPS:
         self.__psDLL.get_ACLine_TS_All_Result.argtypes = [array_1d_double, c_int]
         self.__psDLL.get_ACLine_TS_All_Result.restype = c_bool
         # transformer
-        self.__psDLL.get_N_Transformer.argtypes = [c_int]
-        self.__psDLL.get_N_Transformer.restype = c_int
+        self.__psDLL.get_Transformer_Number.argtypes = [c_int]
+        self.__psDLL.get_Transformer_Number.restype = c_int
         self.__psDLL.get_Transformer_I_No.argtypes = [c_int, c_int]
         self.__psDLL.get_Transformer_I_No.restype = c_int
         self.__psDLL.get_Transformer_J_No.argtypes = [c_int, c_int]
@@ -201,8 +202,8 @@ class Py_PSOPS:
         self.__psDLL.get_Transformer_TS_All_Result.argtypes = [array_1d_double, c_int]
         self.__psDLL.get_Transformer_TS_All_Result.restype = c_bool
         # generator
-        self.__psDLL.get_N_Generator.argtypes = [c_int]
-        self.__psDLL.get_N_Generator.restype = c_int
+        self.__psDLL.get_Generator_Number.argtypes = [c_int]
+        self.__psDLL.get_Generator_Number.restype = c_int
         self.__psDLL.get_Generator_Bus_No.argtypes = [c_int, c_int]
         self.__psDLL.get_Generator_Bus_No.restype = c_int
         self.__psDLL.get_Generator_Sys_No.argtypes = [c_int]
@@ -251,8 +252,8 @@ class Py_PSOPS:
         self.__psDLL.get_Generator_PSS_TS_CurStep_Result.argtypes = [array_1d_double, c_int, c_int]
         self.__psDLL.get_Generator_PSS_TS_CurStep_Result.restype = c_bool
         # load
-        self.__psDLL.get_N_Load.argtypes = [c_int]
-        self.__psDLL.get_N_Load.restype = c_int
+        self.__psDLL.get_Load_Number.argtypes = [c_int]
+        self.__psDLL.get_Load_Number.restype = c_int
         self.__psDLL.get_Load_Bus_No.argtypes = [c_int, c_int]
         self.__psDLL.get_Load_Bus_No.restype = c_int
         self.__psDLL.get_Load_Sys_No.argtypes = [c_int]
@@ -274,36 +275,38 @@ class Py_PSOPS:
         self.__psDLL.get_Load_TS_All_Result.argtypes = [array_1d_double, c_int]
         self.__psDLL.get_Load_TS_All_Result.restype = c_bool
         # network
-        self.__psDLL.get_N_Non_Zero_Element.argtypes = [c_int]
-        self.__psDLL.get_N_Non_Zero_Element.restype = c_int
-        self.__psDLL.get_N_Inverse_Non_Zero_Element.argtypes = [c_int]
-        self.__psDLL.get_N_Inverse_Non_Zero_Element.restype = c_int
-        self.__psDLL.get_N_ACSystem_Check_Connectivity.argtypes = [c_int]
-        self.__psDLL.get_N_ACSystem_Check_Connectivity.restype = c_int
-        self.__psDLL.get_ACLine_Connectivity.argtypes = [c_int, c_int]
-        self.__psDLL.get_ACLine_Connectivity.restype = c_bool
-        self.__psDLL.set_ACLine_Connectivity.argtypes = [c_bool, c_int, c_int]
-        self.__psDLL.set_ACLine_Connectivity.restype = c_bool
-        self.__psDLL.get_Transformer_Connectivity.argtypes = [c_int, c_int]
-        self.__psDLL.get_Transformer_Connectivity.restype = c_bool
-        self.__psDLL.set_Transformer_Connectivity.argtypes = [c_bool, c_int, c_int]
-        self.__psDLL.set_Transformer_Connectivity.restype = c_bool
-        self.__psDLL.set_Rebuild_All_Network_Data.argtypes = None
-        self.__psDLL.set_Rebuild_All_Network_Data.restype = c_bool
-        self.__psDLL.get_Generator_Connectivity.argtypes = [c_int, c_int]
-        self.__psDLL.get_Generator_Connectivity.restype = c_bool
-        self.__psDLL.set_Generator_Connectivity.argtypes = [c_bool, c_int, c_int]
-        self.__psDLL.set_Generator_Connectivity.restype = c_bool
-        self.__psDLL.get_Load_Connectivity.argtypes = [c_int, c_int]
-        self.__psDLL.get_Load_Connectivity.restype = c_bool
-        self.__psDLL.set_Load_Connectivity.argtypes = [c_bool, c_int, c_int]
-        self.__psDLL.set_Load_Connectivity.restype = c_bool
-        self.__psDLL.get_Admittance_Matrix_Full.argtypes = [array_1d_double, c_int]
-        self.__psDLL.get_Admittance_Matrix_Full.restype = c_bool
-        self.__psDLL.get_Impedence_Matrix_Full.argtypes = [array_1d_double, c_int]
-        self.__psDLL.get_Impedence_Matrix_Full.restype = c_bool
-        self.__psDLL.get_Impedence_Matrix_Factorized.argtypes = [array_1d_double, c_int]
-        self.__psDLL.get_Impedence_Matrix_Factorized.restype = c_bool
+        self.__psDLL.get_Network_N_Non_Zero_Element.argtypes = [c_int]
+        self.__psDLL.get_Network_N_Non_Zero_Element.restype = c_int
+        self.__psDLL.get_Network_N_Inverse_Non_Zero_Element.argtypes = [c_int]
+        self.__psDLL.get_Network_N_Inverse_Non_Zero_Element.restype = c_int
+        self.__psDLL.get_Network_N_ACSystem_Check_Connectivity.argtypes = [c_int]
+        self.__psDLL.get_Network_N_ACSystem_Check_Connectivity.restype = c_int
+        self.__psDLL.get_Network_Bus_Connectivity_Flag.argtypes = [c_int, c_int]
+        self.__psDLL.get_Network_Bus_Connectivity_Flag.restype = c_int
+        self.__psDLL.get_Network_ACLine_Connectivity.argtypes = [c_int, c_int]
+        self.__psDLL.get_Network_ACLine_Connectivity.restype = c_bool
+        self.__psDLL.set_Network_ACLine_Connectivity.argtypes = [c_bool, c_int, c_int]
+        self.__psDLL.set_Network_ACLine_Connectivity.restype = c_bool
+        self.__psDLL.get_Network_Transformer_Connectivity.argtypes = [c_int, c_int]
+        self.__psDLL.get_Network_Transformer_Connectivity.restype = c_bool
+        self.__psDLL.set_Network_Transformer_Connectivity.argtypes = [c_bool, c_int, c_int]
+        self.__psDLL.set_Network_Transformer_Connectivity.restype = c_bool
+        self.__psDLL.set_Network_Rebuild_All_Network_Data.argtypes = None
+        self.__psDLL.set_Network_Rebuild_All_Network_Data.restype = c_bool
+        self.__psDLL.get_Network_Generator_Connectivity.argtypes = [c_int, c_int]
+        self.__psDLL.get_Network_Generator_Connectivity.restype = c_bool
+        self.__psDLL.set_Network_Generator_Connectivity.argtypes = [c_bool, c_int, c_int]
+        self.__psDLL.set_Network_Generator_Connectivity.restype = c_bool
+        self.__psDLL.get_Network_Load_Connectivity.argtypes = [c_int, c_int]
+        self.__psDLL.get_Network_Load_Connectivity.restype = c_bool
+        self.__psDLL.set_Network_Load_Connectivity.argtypes = [c_bool, c_int, c_int]
+        self.__psDLL.set_Network_Load_Connectivity.restype = c_bool
+        self.__psDLL.get_Network_Admittance_Matrix_Full.argtypes = [array_1d_double, c_int]
+        self.__psDLL.get_Network_Admittance_Matrix_Full.restype = c_bool
+        self.__psDLL.get_Network_Impedence_Matrix_Full.argtypes = [array_1d_double, c_int]
+        self.__psDLL.get_Network_Impedence_Matrix_Full.restype = c_bool
+        self.__psDLL.get_Network_Impedence_Matrix_Factorized.argtypes = [array_1d_double, c_int]
+        self.__psDLL.get_Network_Impedence_Matrix_Factorized.restype = c_bool
         # fault and disturbance
         self.__psDLL.set_Fault_Disturbance_Clear_All.argtypes = None
         self.__psDLL.set_Fault_Disturbance_Clear_All.restype = c_bool
@@ -339,9 +342,9 @@ class Py_PSOPS:
         """Get basic information of the power system
         """     
         # total number of asynchronous ac systems   
-        self.__nACSystem = self.__psDLL.get_N_ACSystem()
+        self.__nACSystem = self.__psDLL.get_ACSystem_Number()
         # total number of buses
-        self.__nBus = self.__psDLL.get_N_Bus(-1)
+        self.__nBus = self.__psDLL.get_Bus_Number(-1)
         assert self.__nBus >= 0, 'system total bus number wrong, please check!'
         # build an numpy array for all the bus names
         self.__allBusName = list()
@@ -351,22 +354,22 @@ class Py_PSOPS:
             self.__allBusName.append(string_at(tmp, -1).decode('gbk'))
         self.__allBusName = np.array(self.__allBusName)
         # total number of aclines
-        self.__nACLine = self.__psDLL.get_N_ACLine(-1)
+        self.__nACLine = self.__psDLL.get_ACLine_Number(-1)
         assert self.__nACLine >= 0, 'system number wrong, please check!'
         # total number of transformers
-        self.__nTransformer = self.__psDLL.get_N_Transformer(-1)
+        self.__nTransformer = self.__psDLL.get_Transformer_Number(-1)
         assert self.__nTransformer >= 0, 'total number of transformer wrong, please check!'
         # total number of generators
-        self.__nGenerator = self.__psDLL.get_N_Generator(-1)
+        self.__nGenerator = self.__psDLL.get_Generator_Number(-1)
         assert self.__nGenerator >= 0, 'total number of generator wrong, please check!'
         # total number of loads
-        self.__nLoad = self.__psDLL.get_N_Load(-1)
+        self.__nLoad = self.__psDLL.get_Load_Number(-1)
         assert self.__nLoad >= 0, 'total number of load wrong, please check!'
         # total number of non-zero elements in the factor table
-        self.__nNonzero = self.__psDLL.get_N_Non_Zero_Element(-1)
+        self.__nNonzero = self.__psDLL.get_Network_N_Non_Zero_Element(-1)
         assert self.__nNonzero >= 0, 'total number of non-zero element wrong, please check!'
         # total number of non-zero elements in the inverse factor table
-        self.__nInverseNonZero = self.__psDLL.get_N_Inverse_Non_Zero_Element(-1)
+        self.__nInverseNonZero = self.__psDLL.get_Network_N_Inverse_Non_Zero_Element(-1)
         assert self.__nInverseNonZero >= 0, 'total number of inverse non-zeror wrong, please check!'
 
     def _create_buffer(self):
@@ -398,17 +401,335 @@ class Py_PSOPS:
         self.__load_q_origin = self.get_load_all_q_set()
 
     ################################################################################################
-    # calculation
+    # Power Flow
     ################################################################################################
-    def cal_pf_basic_power_flow_nr(self):
-        """Power flow calculation using Newton-Raphson method.
+    def cal_power_flow_basic_nr(self):
+        """Power flow: calculation using Newton-Raphson method.
 
         Returns:
             int: The number of iterations of the power flow solution.
         """        
-        return self.__psDLL.cal_PF_Basic_Power_Flow()
+        return self.__psDLL.cal_Power_Flow_Basic_Newton_Raphson()
+    
+    def get_power_flow_bounds(self, 
+                              generator_v_list=None,
+                              generator_p_list=None,
+                              load_p_list=None,
+                              load_q_list=None,
+                              load_max=None,
+                              load_min=None,
+                              sys_no=-1):
+        """power flow: get power flow bounds according to settings.
 
-    def cal_ts_simulation_ti_sv(self, start_time=0.0, contingency_no=0):
+        Args:
+            generator_v_list (list, optional): list of generators with controllable v. Defaults to None.
+            generator_p_list (list, optional): list of generators with controllable p. Defaults to None.
+            load_p_list (list, optional): list of loads with controllable p. Defaults to None.
+            load_q_list (list, optional): list of loads with controllable q. Defaults to None.
+            load_max (float, optional): the load upper bound settings. Defaults to None. 
+                None means loading the default settings shown by self.__load_pq_bounds.
+                -1 means loading the current load settings.
+                Others mean loading the original load settings and multiply the given load_max.
+            load_min (float, optional): the load lower bound settings. Similar to load_max. Defaults to None.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            list: [upper_bound, lower_bound]. The two bounds meet with np.array([vg, pg, pl, ql]).
+        """        
+        # gen v max&min
+        if generator_v_list is None: generator_v_list = np.arange(self.get_generator_number(sys_no))
+        gen_vmax = self.get_generator_all_vmax(generator_v_list, sys_no)
+        gen_vmin = self.get_generator_all_vmin(generator_v_list, sys_no)
+        # gen p max&min
+        if generator_p_list is None: generator_p_list = self.get_generator_all_ctrl(None, sys_no)
+        gen_pmax = self.get_generator_all_pmax(generator_p_list, sys_no)
+        gen_pmin = self.get_generator_all_pmin(generator_p_list, sys_no)
+        # gen p check
+        if np.all(gen_pmax == 0) and np.all(gen_pmin == 0):
+            if sys_no != -1:
+                for i in range(sys_no):
+                    generator_p_list += self.get_bus_number(i)
+            gen_pmax = self.__generator_p_origin[generator_p_list] * self.__generator_p_bounds[1]
+            gen_pmin = self.__generator_p_origin[generator_p_list] * self.__generator_p_bounds[0]
+        # load bound
+        load_max = self.__load_pq_bounds[1] if load_max is None else load_max
+        load_min = self.__load_pq_bounds[0] if load_min is None else load_min
+        # load p max&min
+        if load_p_list is None: load_p_list = np.arange(self.get_load_number(sys_no))
+        if load_max == -1: load_pmax = self.get_load_all_p_set(load_p_list, sys_no)
+        if load_min == -1: load_pmin = self.get_load_all_p_set(load_p_list, sys_no)
+        if sys_no != -1:
+            for i in range(sys_no): load_p_list += self.get_bus_number(i)
+        if load_max != -1: load_pmax = self.__load_p_origin[load_p_list] * load_max
+        if load_min != -1: load_pmin = self.__load_p_origin[load_p_list] * load_min
+        # load q max&min
+        if load_q_list is None: load_q_list = np.arange(self.get_load_number(sys_no))
+        if load_max == -1: load_qmax = self.get_load_all_q_set(load_q_list, sys_no)
+        if load_min == -1: load_qmin = self.get_load_all_q_set(load_q_list, sys_no)
+        if sys_no != -1:
+            for i in range(sys_no): load_q_list += self.get_bus_number(i)
+        if load_max != -1: load_qmax = self.__load_q_origin[load_q_list] * load_max
+        if load_min != -1: load_qmin = self.__load_q_origin[load_q_list] * load_min
+        # concatenate bounds
+        lower = np.concatenate((gen_vmin, gen_pmin, load_pmin, load_qmin))
+        upper = np.concatenate((gen_vmax, gen_pmax, load_pmax, load_qmax))
+        idx = lower > upper
+        lower[idx], upper[idx] = upper[idx], lower[idx]
+        assert np.any(lower > upper) == False, "get lf bounds failed, please check!"
+        return [lower, upper]
+
+    def set_power_flow_initiation(self, 
+                                  sample: np.ndarray, 
+                                  generator_v_list=None,
+                                  generator_p_list=None,
+                                  load_p_list=None,
+                                  load_q_list=None,
+                                  sys_no=-1):
+        """Power flow: set power flow initiation state.
+
+        Args:
+            sample (np.ndarray): the sample setting, np.array([vg, pg, pl, ql]).
+            generator_v_list (list, optional): list of generators with controllable v. Defaults to None.
+            generator_p_list (list, optional): list of generators with controllable p. Defaults to None.
+            load_p_list (list, optional): list of loads with controllable p. Defaults to None.
+            load_q_list (list, optional): list of loads with controllable q. Defaults to None.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+        """        
+        sample_part = sample.copy()
+        # gen v set
+        if generator_v_list is None:
+            generator_v_list = np.arange(self.get_generator_number(sys_no))
+        self.set_generator_all_v_set(sample_part[:len(generator_v_list)], generator_v_list, sys_no)
+        sample_part = sample_part[len(generator_v_list):]
+        # gen p set
+        if generator_p_list is None:
+            generator_p_list = self.get_generator_all_ctrl(None, sys_no)
+        self.set_generator_all_p_set(sample_part[:len(generator_p_list)], generator_p_list, sys_no)
+        sample_part = sample_part[len(generator_p_list):]
+        # load p set
+        if load_p_list is None:
+            load_p_list = np.arange(self.get_load_number(sys_no))
+        self.set_load_all_p_set(sample_part[:len(load_p_list)], load_p_list, sys_no)
+        sample_part = sample_part[len(load_p_list):]
+        # load q set
+        if load_q_list is None:
+            load_q_list = np.arange(self.get_load_number(sys_no))
+        self.set_load_all_q_set(sample_part[:len(load_q_list)], load_q_list, sys_no)
+
+    def get_power_flow_original_status(self):
+        """Power flow: get the original power flow state.
+
+        Returns:
+            ndarray float: the power flow settings are np.array([vg, pg, pl, ql]).
+        """        
+        return np.concatenate((self.__generator_v_origin, self.__generator_p_origin[self.__indexCtrlGen], self.__load_p_origin, self.__load_q_origin))
+
+    def set_power_flow_original_status(self):
+        """Power flow: resume power flow to the original state.
+        """        
+        self.set_power_flow_initiation(self.get_power_flow_original_status())
+
+    def get_power_flow_status_check(self):
+        """Power flow: get power flow state. [convergence, slack generation is bigger than 0, all the voltages are within acceptable range]
+
+        Returns:
+            list: power flow state, [convergence, slack, voltage].
+        """        
+        if self.cal_power_flow_basic_nr() > 0:
+            slack_p = self.get_generator_all_lf_result(self.__indexSlack)[:, 0]
+            if np.all(slack_p > 0.0):
+                lf_v = self.get_bus_all_lf_result()[:, 0]
+                if np.any(lf_v > self.get_bus_all_vmax()) or np.any(lf_v < self.get_bus_all_vmin()):
+                    return [True, True, False]
+                else:
+                    return [True, True, True]
+            else:
+                return [True, False, False]
+        else:
+            return [False, False, False]
+
+    # pf sampler, gen_v, ctrl_gen_p, load_p, load_q
+    def get_power_flow_sample_simple_random(self, num=1, generator_v_list=None, generator_p_list=None, load_p_list=None, load_q_list=None, 
+                                            load_max=None, load_min=None, sys_no=-1, check_converge=True, check_slack=True, check_voltage=True):
+        """Power flow: get power flow samples using simple random sampling method.
+
+        Args:
+            num (int, optional): number of samples. Defaults to 1.
+            generator_v_list (list, optional): list of generators with controllable v. Defaults to None.
+            generator_p_list (list, optional): list of generators with controllable p. Defaults to None.
+            load_p_list (list, optional): list of loads with controllable p. Defaults to None.
+            load_q_list (list, optional): list of loads with controllable q. Defaults to None.
+            load_max (float, optional): the load upper bound settings. Defaults to None. 
+                None means loading the default settings shown by self.__load_pq_bounds.
+                -1 means loading the current load settings.
+                Others mean loading the original load settings and multiply the given load_max.
+            load_min (float, optional): the load lower bound settings. Similar to load_max. Defaults to None.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+            check_converge (bool, optional): flag shows whether checking convergence. Defaults to True.
+            check_slack (bool, optional): flag shows whether checking active power generation of slack generators. Defaults to True.
+            check_voltage (bool, optional): flag shows whether checking nodal voltages. Defaults to True.
+
+        Returns:
+            ndarray: power flow settings.
+        """        
+        [lower_bounds, upper_bounds] = self.get_power_flow_bounds(generator_v_list, generator_p_list, load_p_list, load_q_list, load_max, load_min, sys_no)
+        bound_size = len(lower_bounds)
+        sample_buffer = list()
+        iter_buffer = list()
+        sample_total = 0
+        for _ in range(num):
+            [converge, valid_slack, valid_v] = [False, False, False]
+            while (False in [converge, valid_slack, valid_v]):
+                r_vector = self.__rng.random(bound_size)
+                cur_status = lower_bounds + (upper_bounds - lower_bounds) * r_vector
+                sample_total += 1
+                self.set_power_flow_initiation(cur_status, generator_v_list, generator_p_list, load_p_list, load_q_list)
+                # total_load = sum(self.get_load_all_p_set())
+                # total_slack = sum(self.get_generator_all_pmax(self.__indexSlack))
+                # total_ctrl = sum(self.get_generator_all_p_set(self.__indexCtrlGen))
+                # if total_load < total_ctrl or total_load > total_ctrl + total_slack:
+                #     continue
+                [converge, valid_slack, valid_v] = self.get_power_flow_status_check()
+                [converge, valid_slack, valid_v] = [x or y for x, y in zip([converge, valid_slack, valid_v], [not check_converge, not check_slack, not check_voltage])]
+                iter_buffer.append(self.get_info_lf_iter())
+                if False not in [converge, valid_slack, valid_v]:
+                    break
+            sample_buffer.append(cur_status)
+        # print(f'total sample: {sample_total}')  
+        # print(f'iteration number: {iter_buffer}')
+        return sample_buffer
+        
+    def get_power_flow_sample_stepwise(self, num=1, generator_v_list=None, generator_p_list=None, load_p_list=None, load_q_list=None, 
+                                       load_max=None, load_min=None, sys_no=-1, check_converge=True, check_slack=True, check_voltage=True):
+        """Power flow: get power flow samples using stepwise sampling method.
+           1. sampling load p. 
+           2. sampling generator p. 10 times.
+           3. sampling load q. 10 times.
+           4. sampling voltages. 10 times.
+
+        Args:
+            num (int, optional): number of samples. Defaults to 1.
+            generator_v_list (list, optional): list of generators with controllable v. Defaults to None.
+            generator_p_list (list, optional): list of generators with controllable p. Defaults to None.
+            load_p_list (list, optional): list of loads with controllable p. Defaults to None.
+            load_q_list (list, optional): list of loads with controllable q. Defaults to None.
+            load_max (float, optional): the load upper bound settings. Defaults to None. 
+                None means loading the default settings shown by self.__load_pq_bounds.
+                -1 means loading the current load settings.
+                Others mean loading the original load settings and multiply the given load_max.
+            load_min (float, optional): the load lower bound settings. Similar to load_max. Defaults to None.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+            check_converge (bool, optional): flag shows whether checking convergence. Defaults to True.
+            check_slack (bool, optional): flag shows whether checking active power generation of slack generators. Defaults to True.
+            check_voltage (bool, optional): flag shows whether checking nodal voltages. Defaults to True.
+
+        Returns:
+            ndarray: power flow settings.
+        """        
+        if generator_v_list is None: generator_v_list = np.arange(self.get_generator_number(sys_no))
+        if generator_p_list is None: generator_p_list = self.get_generator_all_ctrl(None, sys_no)
+        if load_p_list is None: load_p_list = np.arange(self.get_load_number(sys_no))
+        if load_q_list is None: load_q_list = np.arange(self.get_load_number(sys_no))
+        [lower_bounds, upper_bounds] = self.get_power_flow_bounds(generator_v_list, generator_p_list, load_p_list, load_q_list, load_max, load_min, sys_no)
+        gen_vmax = upper_bounds[:len(generator_v_list)]
+        gen_vmin = lower_bounds[:len(generator_v_list)]
+        gen_pmax = upper_bounds[len(generator_v_list):len(generator_v_list)+len(generator_p_list)]
+        gen_pmin = lower_bounds[len(generator_v_list):len(generator_v_list)+len(generator_p_list)]
+        slack_pmax = self.get_generator_all_pmax(self.__indexSlack)
+        slack_pmin = self.get_generator_all_pmin(self.__indexSlack)
+        load_pmax = upper_bounds[len(generator_v_list)+len(generator_p_list):len(generator_v_list)+len(generator_p_list)+len(load_p_list)]
+        load_pmin = lower_bounds[len(generator_v_list)+len(generator_p_list):len(generator_v_list)+len(generator_p_list)+len(load_p_list)]
+        load_qmax = upper_bounds[-len(load_q_list):]
+        load_qmin = lower_bounds[-len(load_q_list):]
+        sample_buffer = list()
+        sample_total = 0
+        gen_v = self.get_generator_all_v_set(generator_v_list, sys_no)
+        gen_p = np.zeros(len(generator_p_list))
+        sample_no = 0
+        while sample_no < num:
+            # load p max&min
+            load_psum = -1.0
+            while load_psum < (sum(gen_pmin) + sum(slack_pmin)) or load_psum > (sum(gen_pmax) + sum(slack_pmax)):
+                load_p = load_pmin + (load_pmax - load_pmin) * self.__rng.random(len(load_pmax))
+                load_psum = sum(load_p)
+            # slack p
+            load_psum = sum(load_p)
+            s_pmin = max(load_psum - sum(gen_pmax), sum(slack_pmin))
+            s_pmax = min(load_psum - sum(gen_pmin), sum(slack_pmax))
+            s_pmin = s_pmin + (s_pmax - s_pmin) * self.__rng.random()
+            s_pmax = s_pmin + (s_pmax - s_pmin) * self.__rng.random()
+            # print('slack', s_pmin, s_pmax)
+            # gen p
+            for _ in range(10):
+                gen_p.fill(0.)
+                gen_order = self.__rng.choice(np.arange(len(gen_p)), len(generator_p_list), replace=False)
+                load_psum = sum(load_p)
+                # random slack
+                for i in range(len(gen_p)):
+                    gen_no = gen_order[i]
+                    remain_gen = gen_order[i+1:] if i+1 < len(gen_p) else []
+                    pmin = max(load_psum - sum(gen_pmax[remain_gen]) - s_pmax, gen_pmin[gen_no])
+                    pmax = min(load_psum - sum(gen_pmin[remain_gen]) - s_pmin, gen_pmax[gen_no])
+                    # print('generator', gen_no, [pmin, pmax])
+                    gen_p[gen_no] = pmin + (pmax - pmin) * self.__rng.random()
+                    load_psum -= gen_p[gen_no]
+                # print('remaining', load_psum)
+                # load q
+                for _ in range(10):
+                    load_q = load_qmin + (load_qmax - load_qmin) * self.__rng.random(len(load_qmax))
+                    # gen v
+                    for _ in range(10):
+                        gen_v = gen_vmin + (gen_vmax - gen_vmin) * self.__rng.random(len(gen_vmax))
+                        cur_status = np.concatenate([gen_v, gen_p, load_p, load_q])
+                        self.set_power_flow_initiation(cur_status)
+                        [converge, valid_slack, valid_v] = self.get_power_flow_status_check()
+                        sample_total += 1
+                        [converge, valid_slack, valid_v] = [x or y for x, y in zip([converge, valid_slack, valid_v], [not check_converge, not check_slack, not check_voltage])]
+                        if False not in [converge, valid_slack, valid_v]: break
+                    if False not in [converge, valid_slack, valid_v]: break
+                if False not in [converge, valid_slack, valid_v]: break
+            if False not in [converge, valid_slack, valid_v]: 
+                sample_no += 1
+                sample_buffer.append(cur_status)
+        print(f'total sample: {sample_total}')  
+        return sample_buffer
+    
+    def get_pf_sample_all(self, num=1, generator_v_list=None, generator_p_list=None, load_p_list=None, load_q_list=None, load_max=None, load_min=None, sys_no=-1):
+        """Power flow: power Flow Sampler, return initial state and convergence iteration number.
+
+        Args:
+            num (int, optional): Number of samples. Defaults to 1.
+            generator_v_list (list, optional): list of generators with controllable v. Defaults to None.
+            generator_p_list (list, optional): list of generators with controllable p. Defaults to None.
+            load_p_list (list, optional): list of loads with controllable p. Defaults to None.
+            load_q_list (list, optional): list of loads with controllable q. Defaults to None.
+            load_max (float, optional): the load upper bound settings. Defaults to None. 
+                None means loading the default settings shown by self.__load_pq_bounds.
+                -1 means loading the current load settings.
+                Others mean loading the original load settings and multiply the given load_max.
+            load_min (float, optional): the load lower bound settings. Similar to load_max. Defaults to None.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            list, list: sample list and iteration list (-1 for unconvergence)
+        """        
+        [lower_bounds, upper_bounds] = self.get_power_flow_bounds(generator_v_list, generator_p_list, load_p_list, load_q_list, load_max, load_min, sys_no)
+        bound_size = len(lower_bounds)
+        sample_buffer = list()
+        iter_buffer = list()
+        for _ in range(num):
+            r_vector = self.__rng.random(bound_size)
+            cur_status = lower_bounds + (upper_bounds - lower_bounds) * r_vector
+            # sample_buffer.append(cur_status)
+            sample_buffer.append([cur_status, np.concatenate([cur_status[:10], r_vector[10:]])])
+            self.set_power_flow_initiation(cur_status, generator_v_list, generator_p_list, load_p_list, load_q_list)
+            iter_buffer.append(self.cal_power_flow_basic_nr())
+        return sample_buffer, iter_buffer
+
+    ################################################################################################
+    # Transient Stability
+    ################################################################################################
+    def cal_transient_stability_simulation_ti_sv(self, start_time=0.0, contingency_no=0):
         """Transient stability simulation using the implicit trapezoidal method and sparse vector method. 
 
         Args:
@@ -424,6 +745,25 @@ class Py_PSOPS:
     
     # TODO api for other integration method and sparse vector method.
 
+    def get_transient_stability_check_stability(self, maximum_delta=180.):
+        """Transient stability: check stability of the simulation.
+
+        Args:
+            maximum_delta (float, optional): the acceptable maximum rotor angle. Defaults to 180..
+
+        Returns:
+            bool: flag shows whether the simulation is stable.
+        """        
+        std_result = self.get_acsystem_all_ts_result()[0]
+        if std_result[:, 1].max() < maximum_delta:
+            fin_step = self.get_info_ts_finish_step()
+            if fin_step + 1 != self.get_info_ts_max_step():
+                print(fin_step, std_result[:, 1].max())
+                # raise Exception("stable and early finish, please check!")
+            return True
+        else:
+            return False
+
     ################################################################################################
     # calculation information and calculation control
     ################################################################################################
@@ -436,7 +776,7 @@ class Py_PSOPS:
         Returns:
             int: The number of iterations of power flow solution.
         """        
-        return self.__psDLL.get_LF_Iter(sys_no)
+        return self.__psDLL.get_Info_LF_Iter(sys_no)
 
     def get_info_ts_end_t(self):
         """Get calculation information: maximum simulation duration, usually set to 3 seconds for classic models or 10 seconds for detailed models.
@@ -444,7 +784,7 @@ class Py_PSOPS:
         Returns:
             double/float64: TE, T end, maximum simulation duration.
         """        
-        return self.__psDLL.get_TE()
+        return self.__psDLL.get_Info_TE()
 
     def get_info_ts_delta_t(self):
         """Get calculation information: integration step of the simulaiton, usually set to 0.01 seconds, i.e., half cycle for electromechanical simulation. 
@@ -452,7 +792,7 @@ class Py_PSOPS:
         Returns:
             double/float64: integration step.
         """        
-        return self.__psDLL.get_DT()
+        return self.__psDLL.get_Info_DT()
 
     def get_info_ts_max_step(self):
         """Get calculation information: the total number of simulation steps including the starting step.
@@ -462,7 +802,7 @@ class Py_PSOPS:
         Returns:
             int: the total number of simulation steps.
         """        
-        return self.__psDLL.get_Max_Step()
+        return self.__psDLL.get_Info_Max_Step()
 
     def get_info_ts_finish_step(self):
         """Get calculation information: finishing step of the transient simulation.
@@ -473,7 +813,7 @@ class Py_PSOPS:
         Returns:
             int: The finishing step of the simulation. 
         """        
-        self.__cur_total_step = self.__psDLL.get_Finish_Step()
+        self.__cur_total_step = self.__psDLL.get_Info_Finish_Step()
         return self.__cur_total_step
 
     def get_info_fault_step_sequence(self, contingency_no=0):
@@ -487,7 +827,7 @@ class Py_PSOPS:
         Returns:
             int numpy array: fault step sequence.
         """        
-        assert self.__psDLL.get_Fault_Step_Sequence(self.__doubleBuffer, contingency_no) is True, "get fault step sequence failed, please check!"
+        assert self.__psDLL.get_Info_Fault_Step_Sequence(self.__doubleBuffer, contingency_no) is True, "get fault step sequence failed, please check!"
         # [0] is n_fault_step, [1:] is step sequences
         n_fault_step = int(self.__doubleBuffer[0])
         return self.__doubleBuffer[1:n_fault_step].astype(np.int32)
@@ -503,7 +843,7 @@ class Py_PSOPS:
         Returns:
             float32 numpy array: fault time sequence.
         """        
-        assert self.__psDLL.get_Fault_Time_Sequence(self.__doubleBuffer, contingency_no) is True, "get fault time sequence failed, please check!"
+        assert self.__psDLL.get_Info_Fault_Time_Sequence(self.__doubleBuffer, contingency_no) is True, "get fault time sequence failed, please check!"
         # [0] is n_fault_step, [1:] is time sequences
         n_fault_step = int(self.__doubleBuffer[0])
         return self.__doubleBuffer[1:n_fault_step].astype(np.float32)
@@ -520,7 +860,7 @@ class Py_PSOPS:
             is_real_step (bool, optional): A flag showing whether the step is a real one or the actual step in simulation. Defaults to True.
             sys_no (int, optional): System range. Defaults to -1.
         """
-        assert self.__psDLL.set_TS_Step_Network_State(step, is_real_step, sys_no) is True, "Step No or AC System No error. Please check!"
+        assert self.__psDLL.set_Info_TS_Step_Network_State(step, is_real_step, sys_no) is True, "Step No or AC System No error. Please check!"
 
     def set_info_ts_step_element_state(self, step: int, is_real_step=True, sys_no=-1):
         """Set calculation information: set the component state to a certain integration step. 
@@ -534,7 +874,7 @@ class Py_PSOPS:
             is_real_step (bool, optional): A flag showing whether the step is a real one or the actual step in simulation. Defaults to True.
             sys_no (int, optional): System range. Defaults to -1.
         """        
-        assert self.__psDLL.set_TS_Step_Element_State(step, is_real_step, sys_no) is True, "Step No or AC System No error. Please check!"
+        assert self.__psDLL.set_Info_TS_Step_Element_State(step, is_real_step, sys_no) is True, "Step No or AC System No error. Please check!"
 
     def set_info_ts_step_all_state(self, step: int, is_real_step=True, sys_no=-1):
         """Set calculation information: set the all the state including components' states and network state to a certain integration step. 
@@ -548,7 +888,7 @@ class Py_PSOPS:
             is_real_step (bool, optional): A flag showing whether the step is a real one or the actual step in simulation. Defaults to True.
             sys_no (int, optional): System range. Defaults to -1.
         """        
-        assert self.__psDLL.set_TS_Step_All_State(step, is_real_step, sys_no) is True, "Step No or AC System No error. Please check!"
+        assert self.__psDLL.set_Info_TS_Step_All_State(step, is_real_step, sys_no) is True, "Step No or AC System No error. Please check!"
 
     ################################################################################################
     # ac systems
@@ -629,7 +969,7 @@ class Py_PSOPS:
         Returns:
             int: the number of buses.
         """        
-        n_bus = self.__nBus if sys_no == -1 else self.__psDLL.get_N_Bus(sys_no)
+        n_bus = self.__nBus if sys_no == -1 else self.__psDLL.get_Bus_Number(sys_no)
         assert n_bus >= 0, 'total number of bus wrong, please check!'
         return n_bus
 
@@ -903,7 +1243,7 @@ class Py_PSOPS:
         Returns:
             int: the number of aclines.
         """        
-        n_acline = self.__nACLine if sys_no == -1 else self.__psDLL.get_N_ACLine(sys_no)
+        n_acline = self.__nACLine if sys_no == -1 else self.__psDLL.get_ACLine_Number(sys_no)
         assert n_acline >= 0, 'total number of acline wrong, please check!'
         return n_acline
 
@@ -1273,7 +1613,7 @@ class Py_PSOPS:
         """        
         if sys_no == -1:
             return self.__nTransformer
-        n_transformer = self.__psDLL.get_N_Transformer(sys_no)
+        n_transformer = self.__psDLL.get_Transformer_Number(sys_no)
         assert n_transformer >= 0, 'total number of transformer wrong, please check!'
         return n_transformer
 
@@ -1643,7 +1983,7 @@ class Py_PSOPS:
         """        
         if sys_no == -1:
             return self.__nGenerator
-        n_generator = self.__psDLL.get_N_Generator(sys_no)
+        n_generator = self.__psDLL.get_Generator_Number(sys_no)
         assert n_generator >= 0, 'total number of generator wrong, please check!'
         return n_generator
 
@@ -2503,7 +2843,7 @@ class Py_PSOPS:
         """        
         if sys_no == -1:
             return self.__nLoad
-        n_load = self.__psDLL.get_N_Load(sys_no)
+        n_load = self.__psDLL.get_Load_Number(sys_no)
         assert n_load >= 0, 'total number of load wrong, please check!'
         return n_load
 
@@ -2862,7 +3202,7 @@ class Py_PSOPS:
     ################################################################################################
     # network
     ################################################################################################
-    def get_n_non_zero(self, sys_no=-1):
+    def get_network_n_non_zero(self, sys_no=-1):
         """Get network information: number of non-zero elements in the factor table of asynchronous system sys_no.
 
         Args:
@@ -2873,11 +3213,11 @@ class Py_PSOPS:
         """        
         if sys_no == -1:
             return self.__nNonzero
-        n_non = self.__psDLL.get_N_Non_Zero_Element(sys_no)
+        n_non = self.__psDLL.get_Network_N_Non_Zero_Element(sys_no)
         assert n_non >= 0, 'total number of non-zero element wrong, please check!'
         return n_non
 
-    def get_n_inverse_non_zero(self, sys_no=-1):
+    def get_network_n_inverse_non_zero(self, sys_no=-1):
         """Get network information: number of non-zero elements in the inverse factor table of asynchronous system sys_no.
 
         Args:
@@ -2887,11 +3227,11 @@ class Py_PSOPS:
             int: number of non-zero elements in the factor table.
         """        
         if sys_no == -1: return self.__nInverseNonZero
-        n_non = self.__psDLL.get_N_Inverse_Non_Zero_Element(sys_no)
+        n_non = self.__psDLL.get_Network_N_Inverse_Non_Zero_Element(sys_no)
         assert n_non >= 0, 'total number of inverse non-zero element wrong, please check!'
         return n_non
 
-    def get_n_acsystem_check_connectivity(self, ts_step=0, sys_no=-1):
+    def get_network_n_acsystem_check_connectivity(self, ts_step=0, sys_no=-1):
         """Get network information: check network connectivity and get the number of asynchronous systems at integration step ts_step in asynchronous system sys_no.
            For example, ts_step=0 means the connectivity of the stable operation state, ts_step=20 means the connectivity at integration step 20.
 
@@ -2903,11 +3243,37 @@ class Py_PSOPS:
             int: the number of asynchronous systems.
         """        
         self.set_info_ts_step_element_state(ts_step)
-        n_acsystem = self.__psDLL.get_N_ACSystem_Check_Connectivity(sys_no)
+        n_acsystem = self.__psDLL.get_Network_N_ACSystem_Check_Connectivity(sys_no)
         assert n_acsystem >= 0, "ac system no. is not correct, please check!"
         return n_acsystem
 
-    def get_acline_connectivity(self, acline_no: int, sys_no=-1):
+    def get_network_bus_connectivity_flag(self, bus_no: int, sys_no=-1):
+        """Get network information: get connectivity flag of bus bus_no.
+
+        Args:
+            bus_no (int): Bus No.
+            sys_no (int, optional): System No. Defaults to -1, meaning the whole system network.
+
+        Returns:
+            int: Bus connectivity flag, e.g., if bus 1 belongs to asynchronous subsystem 2 then return 2. 
+        """        
+        return self.__psDLL.get_Network_Bus_Connectivity_Flag(bus_no, sys_no)
+
+    def get_network_bus_all_connectivity_flag(self, bus_list=None, sys_no=-1):
+        """Get network information: all the asynchronous subsystem NO. of buses in the bus_list.
+
+        Args:
+            bus_list (list int, optional): the list of buses whose asynchronous subsystem No. is needed. Defaults to None, which means all the buses.
+
+        Returns:
+            ndarray int: an array of the asynchronous system No.
+        """        
+        bus_list = np.arange(self.__nBus, dtype=np.int) if bus_list is None else bus_list
+        for (index, bus_no) in zip(range(len(bus_list)), bus_list):
+            self.__intBuffer[index] = self.get_network_bus_connectivity_flag(bus_no, sys_no)
+        return self.__intBuffer[:len(bus_list)].astype(np.int32)
+
+    def get_network_acline_connectivity(self, acline_no: int, sys_no=-1):
         """Get network information: the connectivity of acline acline_no in asynchronous system sys_no.
            The connectivity of the acline is True if it is connected to the power network, otherwise the connectivity will be False.
 
@@ -2918,9 +3284,9 @@ class Py_PSOPS:
         Returns:
             bool: acline connectivity.
         """        
-        return self.__psDLL.get_ACLine_Connectivity(acline_no, sys_no)
+        return self.__psDLL.get_Network_ACLine_Connectivity(acline_no, sys_no)
 
-    def get_acline_all_connectivity(self, acline_list=None, sys_no=-1):
+    def get_network_acline_all_connectivity(self, acline_list=None, sys_no=-1):
         """Get network information: all the connectivity of aclines in acline_list in asynchronous system sys_no.
 
         Args:
@@ -2932,10 +3298,10 @@ class Py_PSOPS:
         """        
         acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int) if acline_list is None else acline_list
         for (index, acline_no) in zip(range(len(acline_list)),acline_list):
-            self.__boolBuffer[index] = self.get_acline_connectivity(acline_no, sys_no)
+            self.__boolBuffer[index] = self.get_network_acline_connectivity(acline_no, sys_no)
         return self.__boolBuffer[:len(acline_list)].astype(np.bool)
 
-    def set_acline_connectivity(self, cmark: bool, acline_no: int, sys_no=-1):
+    def set_network_acline_connectivity(self, cmark: bool, acline_no: int, sys_no=-1):
         """Set network information: the connectivity of acline acline_no in asynchronous system sys_no.
 
         Args:
@@ -2943,9 +3309,9 @@ class Py_PSOPS:
             acline_no (int): acline No. of asynchronous system sys_no.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
-        assert self.__psDLL.set_ACLine_Connectivity(cmark, acline_no, sys_no), "set acline connectivity mark wrong, please check!"
+        assert self.__psDLL.set_Network_ACLine_Connectivity(cmark, acline_no, sys_no), "set acline connectivity mark wrong, please check!"
 
-    def set_acline_all_connectivity(self, cmarks: np.ndarray, acline_list=None, sys_no=-1):
+    def set_network_acline_all_connectivity(self, cmarks: np.ndarray, acline_list=None, sys_no=-1):
         """Set network information: all the connectivity of aclines in acline_list in asynchronous system sys_no.
 
         Args:
@@ -2955,9 +3321,9 @@ class Py_PSOPS:
         """        
         acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int) if acline_list is None else acline_list
         assert len(acline_list) == len(cmarks), "marks length does not match, please cleck"
-        for (cmark, acline_no) in zip(cmarks, acline_list): self.set_acline_connectivity(cmark, acline_no, sys_no)
+        for (cmark, acline_no) in zip(cmarks, acline_list): self.set_network_acline_connectivity(cmark, acline_no, sys_no)
 
-    def get_transformer_connectivity(self, transformer_no: int, sys_no=-1):
+    def get_network_transformer_connectivity(self, transformer_no: int, sys_no=-1):
         """Get network information: the connectivity of transformer transformer_no in asynchronous system sys_no.
            The connectivity of the transformer is True if it is connected to the power network, otherwise the connectivity will be False.
 
@@ -2968,9 +3334,9 @@ class Py_PSOPS:
         Returns:
             bool: transformer connectivity.
         """        
-        return self.__psDLL.get_Transformer_Connectivity(transformer_no, sys_no)
+        return self.__psDLL.get_Network_Transformer_Connectivity(transformer_no, sys_no)
 
-    def get_transformer_all_connectivity(self, transformer_list=None, sys_no=-1):
+    def get_network_transformer_all_connectivity(self, transformer_list=None, sys_no=-1):
         """Get network information: all the connectivity of transformers in transformer_list in asynchronous system sys_no.
 
         Args:
@@ -2982,10 +3348,10 @@ class Py_PSOPS:
         """        
         transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int) if transformer_list is None else transformer_list
         for (index, transformer_no) in zip(range(len(transformer_list)), transformer_list):
-            self.__boolBuffer[index] = self.get_transformer_connectivity(transformer_no, sys_no)
+            self.__boolBuffer[index] = self.get_network_transformer_connectivity(transformer_no, sys_no)
         return self.__boolBuffer[:len(transformer_list)].astype(np.bool)
 
-    def set_transformer_connectivity(self, cmark: bool, transformer_no: int, sys_no=-1):
+    def set_network_transformer_connectivity(self, cmark: bool, transformer_no: int, sys_no=-1):
         """Set network information: the connectivity of transformer transformer_no in asynchronous system sys_no.
 
         Args:
@@ -2993,9 +3359,9 @@ class Py_PSOPS:
             transformer_no (int): transformer No. of asynchronous system sys_no.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
-        assert self.__psDLL.set_Transformer_Connectivity(cmark, transformer_no, sys_no), "set transformer connectivity mark wrong, please check!"
+        assert self.__psDLL.set_Network_Transformer_Connectivity(cmark, transformer_no, sys_no), "set transformer connectivity mark wrong, please check!"
 
-    def set_transformer_all_connectivity(self, cmarks: np.ndarray, transformer_list=None, sys_no=-1):
+    def set_network_transformer_all_connectivity(self, cmarks: np.ndarray, transformer_list=None, sys_no=-1):
         """Set network information: all the connectivity of transformers in transformer_list in asynchronous system sys_no.
 
         Args:
@@ -3005,14 +3371,14 @@ class Py_PSOPS:
         """        
         transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int) if transformer_list is None else transformer_list
         assert len(transformer_list) == len(cmarks), "marks length does not match, please cleck"
-        for (cmark, transformer_no) in zip(cmarks, transformer_list): self.set_transformer_connectivity(cmark, transformer_no, sys_no)
+        for (cmark, transformer_no) in zip(cmarks, transformer_list): self.set_network_transformer_connectivity(cmark, transformer_no, sys_no)
 
-    def set_rebuild_all_network_data(self):
+    def set_network_rebuild_all_network_data(self):
         """Set network information: rebuild all network data, including admittance matrix, factor table, sparse vector path, and path tree.
         """        
-        assert self.__psDLL.set_Rebuild_All_Network_Data() is True, "rebuild network data failed, please check"
+        assert self.__psDLL.set_Network_Rebuild_All_Network_Data() is True, "rebuild network data failed, please check"
 
-    def get_generator_connectivity(self, generator_no: int, sys_no=-1):
+    def get_network_generator_connectivity(self, generator_no: int, sys_no=-1):
         """Get network information: the connectivity of generator generator_no in asynchronous system sys_no.
            The connectivity of the generator is True if it is connected to the power network, otherwise the connectivity will be False.
 
@@ -3023,9 +3389,9 @@ class Py_PSOPS:
         Returns:
             bool: generator connectivity.
         """        
-        return self.__psDLL.get_Generator_Connectivity(generator_no, sys_no)
+        return self.__psDLL.get_Network_Generator_Connectivity(generator_no, sys_no)
 
-    def get_generator_all_connectivity(self, generator_list=None, sys_no=-1):
+    def get_network_generator_all_connectivity(self, generator_list=None, sys_no=-1):
         """Get network information: all the connectivity of generators in generator_list in asynchronous system sys_no.
 
         Args:
@@ -3037,10 +3403,10 @@ class Py_PSOPS:
         """        
         generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
         for (index, generator_no) in zip(range(len(generator_list)), generator_list):
-            self.__boolBuffer[index] = self.get_generator_connectivity(generator_no, sys_no)
+            self.__boolBuffer[index] = self.get_network_generator_connectivity(generator_no, sys_no)
         return self.__boolBuffer[:len(generator_list)].astype(np.bool)
 
-    def set_generator_connectivity(self, cmark: bool, generator_no: int, sys_no=-1):
+    def set_network_generator_connectivity(self, cmark: bool, generator_no: int, sys_no=-1):
         """Set network information: the connectivity of generator generator_no in asynchronous system sys_no.
 
         Args:
@@ -3048,9 +3414,9 @@ class Py_PSOPS:
             generator_no (int): generator No. of asynchronous system sys_no.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
-        assert self.__psDLL.set_Generator_Connectivity(cmark, generator_no, sys_no), "set generator connectivity mark wrong, please check!"
+        assert self.__psDLL.set_Network_Generator_Connectivity(cmark, generator_no, sys_no), "set generator connectivity mark wrong, please check!"
 
-    def set_generator_all_connectivity(self, cmarks: np.ndarray, generator_list=None, sys_no=-1):
+    def set_network_generator_all_connectivity(self, cmarks: np.ndarray, generator_list=None, sys_no=-1):
         """Set network information: all the connectivity of generators in generator_list in asynchronous system sys_no.
 
         Args:
@@ -3060,9 +3426,9 @@ class Py_PSOPS:
         """        
         generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
         assert len(generator_list) == len(cmarks), "marks length does not match, please cleck!"
-        for (cmark, generator_no) in zip(cmarks, generator_list): self.set_generator_connectivity(cmark, generator_no, sys_no)
+        for (cmark, generator_no) in zip(cmarks, generator_list): self.set_network_generator_connectivity(cmark, generator_no, sys_no)
     
-    def get_load_connectivity(self, load_no: int, sys_no=-1):
+    def get_network_load_connectivity(self, load_no: int, sys_no=-1):
         """Get network information: the connectivity of load load_no in asynchronous system sys_no.
            The connectivity of the load is True if it is connected to the power network, otherwise the connectivity will be False.
 
@@ -3073,9 +3439,9 @@ class Py_PSOPS:
         Returns:
             bool: load connectivity.
         """        
-        return self.__psDLL.get_Load_Connectivity(load_no, sys_no)
+        return self.__psDLL.get_Network_Load_Connectivity(load_no, sys_no)
 
-    def get_load_all_connectivity(self, load_list=None, sys_no=-1):
+    def get_network_load_all_connectivity(self, load_list=None, sys_no=-1):
         """Get network information: all the connectivity of loads in load_list in asynchronous system sys_no.
 
         Args:
@@ -3087,10 +3453,10 @@ class Py_PSOPS:
         """        
         load_list = np.arange(self.get_load_number(sys_no), dtype=np.int) if load_list is None else load_list
         for (index, load_no) in zip(range(len(load_list)), load_list):
-            self.__boolBuffer[index] = self.get_load_connectivity(load_no, sys_no)
+            self.__boolBuffer[index] = self.get_network_load_connectivity(load_no, sys_no)
         return self.__boolBuffer[:len(load_list)].astype(np.bool)
 
-    def set_load_connectivity(self, cmark: bool, load_no: int, sys_no=-1):
+    def set_network_load_connectivity(self, cmark: bool, load_no: int, sys_no=-1):
         """Set network information: the connectivity of load load_no in asynchronous system sys_no.
 
         Args:
@@ -3098,9 +3464,9 @@ class Py_PSOPS:
             load_no (int): load No. of asynchronous system sys_no.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
-        assert self.__psDLL.set_Load_Connectivity(cmark, load_no, sys_no), "set load connectivity mark wrong, please check!"
+        assert self.__psDLL.set_Network_Load_Connectivity(cmark, load_no, sys_no), "set load connectivity mark wrong, please check!"
 
-    def set_load_all_connectivity(self, cmarks: np.ndarray, load_list=None, sys_no=-1):
+    def set_network_load_all_connectivity(self, cmarks: np.ndarray, load_list=None, sys_no=-1):
         """Set network information: all the connectivity of loads in load_list in asynchronous system sys_no.
 
         Args:
@@ -3110,9 +3476,24 @@ class Py_PSOPS:
         """        
         load_list = np.arange(self.get_load_number(sys_no), dtype=np.int) if load_list is None else load_list
         assert len(load_list) == len(cmarks), "marks length does not match, please cleck!"
-        for (cmark, load_no) in zip(cmarks, load_list): self.set_load_connectivity(cmark, load_no, sys_no)
+        for (cmark, load_no) in zip(cmarks, load_list): self.set_network_load_connectivity(cmark, load_no, sys_no)
 
-    def get_admittance_matrix_full(self, ts_step=0, is_real_step=True, sys_no=-1):
+    def set_network_topology_original(self, sys_no=-1):
+        """Integrated function: set the topology back to the original one.
+
+        Args:
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+        """        
+        acline_cmarks = np.full(self.get_acline_number(sys_no), True)
+        self.set_network_acline_all_connectivity(acline_cmarks, None, sys_no)
+        transformer_cmarks = np.full(self.get_transformer_number(sys_no), True)
+        self.set_network_transformer_all_connectivity(transformer_cmarks, None, sys_no)
+        generator_cmarks = np.full(self.get_generator_number(sys_no), True)
+        self.set_network_generator_all_connectivity(generator_cmarks, None, sys_no)
+        load_cmarks = np.full(self.get_load_number(sys_no), True)
+        self.set_network_load_all_connectivity(load_cmarks, None, sys_no)
+
+    def get_network_admittance_matrix_full(self, ts_step=0, is_real_step=True, sys_no=-1):
         """Get network information: a full matrix of the admittance matrix at integration step ts_step in asynchronous system sys_no. 
            For example, ts_step=0 means the admittance matrix of the stable operation state, ts_step=20 means the admittance matrix at integration step 20.
            If is_real_step is true, the step is the real integration step, e.g., when integration step is 0.01s, t=0.0s is step 0, t=0.15 is step 15, t=2.34s is step 234, etc.
@@ -3127,11 +3508,11 @@ class Py_PSOPS:
             ndarray float32: an array of admittance matrix. Array shape is (2, n_bus, n_bus). (0, n_bus, n_bus) is the real part. (1, n_bus, n_bus) is the imaginary part.
         """        
         self.set_info_ts_step_network_state(ts_step, is_real_step, sys_no)
-        assert self.__psDLL.get_Admittance_Matrix_Full(self.__doubleBuffer, sys_no), "get full admittance matrix failed, please check!"
+        assert self.__psDLL.get_Network_Admittance_Matrix_Full(self.__doubleBuffer, sys_no), "get full admittance matrix failed, please check!"
         n_bus = self.get_bus_number(sys_no)
         return self.__doubleBuffer[:2*n_bus*n_bus].reshape(2, n_bus, n_bus).astype(np.float32)
 
-    def get_impedance_matrix_full(self, ts_step=0, is_real_step=True, sys_no=-1):
+    def get_network_impedance_matrix_full(self, ts_step=0, is_real_step=True, sys_no=-1):
         """Get network information: a full matrix of the impedance matrix, which is naturally a full matrix, at integration step ts_step in asynchronous system sys_no.
            For example, ts_step=0 means the admittance matrix of the stable operation state, ts_step=20 means the admittance matrix at integration step 20.
            If is_real_step is true, the step is the real integration step, e.g., when integration step is 0.01s, t=0.0s is step 0, t=0.15 is step 15, t=2.34s is step 234, etc.
@@ -3146,11 +3527,11 @@ class Py_PSOPS:
             ndarray float32: an array of impedance matrix. Array shape is (2, n_bus, n_bus). (0, n_bus, n_bus) is the real part. (1, n_bus, n_bus) is the imaginary part.
         """        
         self.set_info_ts_step_network_state(ts_step, is_real_step, sys_no)
-        assert self.__psDLL.get_Impedence_Matrix_Full(self.__doubleBuffer, sys_no), "get impedance matrix failed, please check!"
+        assert self.__psDLL.get_Network_Impedence_Matrix_Full(self.__doubleBuffer, sys_no), "get impedance matrix failed, please check!"
         n_bus = self.get_bus_number(sys_no)
         return self.__doubleBuffer[:2*n_bus*n_bus].reshape(2, n_bus, n_bus).astype(np.float32)
 
-    def get_impedance_matrix_factorized(self, ts_step=0, is_real_step=True, sys_no=-1):
+    def get_network_impedance_matrix_factorized(self, ts_step=0, is_real_step=True, sys_no=-1):
         """Get network information: a factorized matrix of the impedance matrix at integration step ts_step in asynchronous system sys_no.
            For example, ts_step=0 means the admittance matrix of the stable operation state, ts_step=20 means the admittance matrix at integration step 20.
            If is_real_step is true, the step is the real integration step, e.g., when integration step is 0.01s, t=0.0s is step 0, t=0.15 is step 15, t=2.34s is step 234, etc.
@@ -3169,14 +3550,46 @@ class Py_PSOPS:
             Each row is (pos_i, pos_j, (b, g, g, -b)).
         """        
         self.set_info_ts_step_network_state(ts_step, is_real_step, sys_no)
-        assert self.__psDLL.get_Impedence_Matrix_Factorized(self.__doubleBuffer, sys_no), "get factorized inverse matrix failed, please check!"
+        assert self.__psDLL.get_Network_Impedence_Matrix_Factorized(self.__doubleBuffer, sys_no), "get factorized inverse matrix failed, please check!"
         n_bus = self.get_bus_number(sys_no)
-        n_invnonzero = self.get_n_inverse_non_zero(sys_no)
+        n_invnonzero = self.get_network_n_inverse_non_zero(sys_no)
         f_inv = list()
         f_inv.append(self.__doubleBuffer[0:(n_invnonzero+n_bus)*6].reshape(n_invnonzero+n_bus, 6).astype(np.float32))
         f_inv.append(self.__doubleBuffer[(n_invnonzero+n_bus)*6:2*(n_invnonzero+n_bus)*6].reshape(n_invnonzero+n_bus, 6).astype(np.float32))
         f_inv.append(self.__doubleBuffer[2*(n_invnonzero+n_bus)*6:2*(n_invnonzero+n_bus)*6+n_bus*6].reshape(n_bus, 6).astype(np.float32))
         return np.array(f_inv, dtype=object)
+
+    def get_network_topology_sample(self, topo_change=1, sys_no=-1):
+        """Integrated function: get an new topology with topo_change randomly chosen aclines cutting out.
+           Connectivity must be kept.
+
+        Args:
+            topo_change (int, optional): the number of the aclines cutting out. Defaults to 1.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            list: information of the aclines cutting out.
+        """        
+        if topo_change == 0:
+            self.set_network_topology_original()
+            return None
+        acline_no = np.arange(self.get_acline_number(sys_no))
+        # acline_no = np.array([1,2,3,4,7,8,9,10,11,14,15,16,17,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33])
+        n_sample = 0
+        selected_no = None
+        while True:
+            selected_no = self.__rng.choice(acline_no, size=topo_change, replace=False)
+            for line_no in selected_no:
+                self.set_network_acline_connectivity(True, line_no, sys_no)
+            if self.get_network_n_acsystem_check_connectivity() == self.__nACSystem:
+                break
+            for line_no in selected_no:
+                self.set_network_acline_connectivity(False, line_no, sys_no)
+            n_sample += 1
+            assert n_sample < 100, "topology sample failed, please check!"
+        self.set_network_rebuild_all_network_data()
+        print([[line_no, self.get_acline_info(line_no, sys_no)] for line_no in selected_no])
+        return [[line_no, self.get_acline_info(line_no, sys_no)] for line_no in selected_no]
 
     ################################################################################################
     # fault and disturbance
@@ -3186,7 +3599,7 @@ class Py_PSOPS:
         """        
         assert self.__psDLL.set_Fault_Disturbance_Clear_All() is True, "clear fault and disturbance failed, please check!"
 
-    def set_fault_add_acline(self, fault_type: int, fault_dis: float, start_time: float, end_time: float, ele_pos: int, sys_no=-1):
+    def set_fault_disturbance_add_acline(self, fault_type: int, fault_dis: float, start_time: float, end_time: float, ele_pos: int, sys_no=-1):
         """Set fault and disturbance information: add an acline fault according to settings in asynchronous system sys_no.
 
         Args:
@@ -3199,7 +3612,7 @@ class Py_PSOPS:
         """        
         assert self.__psDLL.set_Fault_Disturbance_Add_Fault(fault_type, fault_dis, start_time, end_time, 0, ele_pos, False, sys_no), "add fault acline failed, please check!"
 
-    def set_fault_change_acline(self, fault_type: int, fault_dis: float, start_time: float, end_time: float, ele_pos: int, sys_no=-1):
+    def set_fault_disturbance_change_acline(self, fault_type: int, fault_dis: float, start_time: float, end_time: float, ele_pos: int, sys_no=-1):
         """Set fault and disturbance information: change an acline fault according to settings in asynchronous system sys_no.
 
         Args:
@@ -3212,7 +3625,7 @@ class Py_PSOPS:
         """        
         assert self.__psDLL.set_Fault_Disturbance_Add_Fault(fault_type, fault_dis, start_time, end_time, 0, ele_pos, True, sys_no), "change fault acline failed, please check!"
 
-    def set_fault_add_transformer(self, fault_type: int, fault_dis: float, start_time: float, end_time: float, ele_pos: int, sys_no=-1):
+    def set_fault_disturbance_add_transformer(self, fault_type: int, fault_dis: float, start_time: float, end_time: float, ele_pos: int, sys_no=-1):
         """Set fault and disturbance information: add an transformer fault according to settings in asynchronous system sys_no.
 
         Args:
@@ -3238,7 +3651,7 @@ class Py_PSOPS:
         """        
         assert self.__psDLL.set_Fault_Disturbance_Add_Fault(fault_type, fault_dis, start_time, end_time, 1, ele_pos, True, sys_no), "change fault transformer failed, please check!"
 
-    def set_disturbance_add_generator(self, dis_type: int, dis_time: float, dis_per: float, ele_pos: int, sys_no=-1):
+    def set_fault_disturbance_add_generator(self, dis_type: int, dis_time: float, dis_per: float, ele_pos: int, sys_no=-1):
         """Set fault and disturbance information: add an generator fault according to settings in asynchronous system sys_no.
 
         Args:
@@ -3250,7 +3663,7 @@ class Py_PSOPS:
         """        
         assert self.__psDLL.set_Fault_Disturbance_Add_Disturbance(dis_type, dis_time, dis_per, 0, ele_pos, False, sys_no), "add disturbance generator failed, please check!"
 
-    def set_disturbance_change_generator(self, dis_type: int, dis_time: float, dis_per: float, ele_pos: int, sys_no=-1):
+    def set_fault_disturbance_change_generator(self, dis_type: int, dis_time: float, dis_per: float, ele_pos: int, sys_no=-1):
         """Set fault and disturbance information: change an generator fault according to settings in asynchronous system sys_no.
 
         Args:
@@ -3262,7 +3675,7 @@ class Py_PSOPS:
         """        
         assert self.__psDLL.set_Fault_Disturbance_Add_Disturbance(dis_type, dis_time, dis_per, 0, ele_pos, True, sys_no), "change disturbance generator failed, please check!"
 
-    def set_disturbance_add_load(self, dis_type: int, dis_time: float, dis_per: float, ele_pos: int, sys_no=-1):
+    def set_fault_disturbance_add_load(self, dis_type: int, dis_time: float, dis_per: float, ele_pos: int, sys_no=-1):
         """Set fault and disturbance information: add an load fault according to settings in asynchronous system sys_no.
 
         Args:
@@ -3274,7 +3687,7 @@ class Py_PSOPS:
         """        
         assert self.__psDLL.set_Fault_Disturbance_Add_Disturbance(dis_type, dis_time, dis_per, 1, ele_pos, False, sys_no), "add disturbance load failed, please check!"
 
-    def set_disturbance_change_load(self, dis_type: int, dis_time: float, dis_per: float, ele_pos: int, sys_no=-1):
+    def set_fault_disturbance_change_load(self, dis_type: int, dis_time: float, dis_per: float, ele_pos: int, sys_no=-1):
         """Set fault and disturbance information: change an load fault according to settings in asynchronous system sys_no.
 
         Args:
@@ -3287,392 +3700,8 @@ class Py_PSOPS:
         assert self.__psDLL.set_Fault_Disturbance_Add_Disturbance(dis_type, dis_time, dis_per, 1, ele_pos, True, sys_no), "change disturbance load failed, please check!"
 
     ################################################################################################
-    # integrated function
+    # Supplement
     ################################################################################################
-    def set_topology_original(self, sys_no=-1):
-        """Integrated function: set the topology back to the original one.
-
-        Args:
-            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
-        """        
-        acline_cmarks = np.full(self.get_acline_number(sys_no), True)
-        self.set_acline_all_connectivity(acline_cmarks, None, sys_no)
-        transformer_cmarks = np.full(self.get_transformer_number(sys_no), True)
-        self.set_transformer_all_connectivity(transformer_cmarks, None, sys_no)
-        generator_cmarks = np.full(self.get_generator_number(sys_no), True)
-        self.set_generator_all_connectivity(generator_cmarks, None, sys_no)
-        load_cmarks = np.full(self.get_load_number(sys_no), True)
-        self.set_load_all_connectivity(load_cmarks, None, sys_no)
-
-    def get_topology_sample(self, topo_change=1, sys_no=-1):
-        """Integrated function: get an new topology with topo_change randomly chosen aclines cutting out.
-           Connectivity must be kept.
-
-        Args:
-            topo_change (int, optional): the number of the aclines cutting out. Defaults to 1.
-            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
-
-        Returns:
-            list: information of the aclines cutting out.
-        """        
-        if topo_change == 0:
-            self.set_topology_original()
-            return None
-        acline_no = np.arange(self.get_acline_number(sys_no))
-        # acline_no = np.array([1,2,3,4,7,8,9,10,11,14,15,16,17,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33])
-        n_sample = 0
-        selected_no = None
-        while True:
-            selected_no = self.__rng.choice(acline_no, size=topo_change, replace=False)
-            for line_no in selected_no:
-                self.set_acline_connectivity(True, line_no, sys_no)
-            if self.get_n_acsystem_check_connectivity() == self.__nACSystem:
-                break
-            for line_no in selected_no:
-                self.set_acline_connectivity(False, line_no, sys_no)
-            n_sample += 1
-            assert n_sample < 100, "topology sample failed, please check!"
-        self.set_rebuild_all_network_data()
-        print([[line_no, self.get_acline_info(line_no, sys_no)] for line_no in selected_no])
-        return [[line_no, self.get_acline_info(line_no, sys_no)] for line_no in selected_no]
-
-    def set_pf_original_status(self):
-        """Integrated function: resume power flow to the original state.
-        """        
-        self.set_generator_all_v_set(self.__generator_v_origin)
-        self.set_generator_all_p_set(self.__generator_p_origin)
-        self.set_load_all_p_set(self.__load_p_origin)
-        self.set_load_all_q_set(self.__load_q_origin)
-    
-    def get_pf_original_status(self):
-        """Integrated function: get the original power flow state.
-
-        Returns:
-            ndarray float: the power flow settings are np.array([vg, pg, pl, ql]).
-        """        
-        return np.concatenate((self.__generator_v_origin, self.__generator_p_origin[self.__indexCtrlGen], self.__load_p_origin, self.__load_q_origin))
-
-    def set_pf_initiation(self, 
-                      sample: np.ndarray, 
-                      generator_v_list=None,
-                      generator_p_list=None,
-                      load_p_list=None,
-                      load_q_list=None,
-                      sys_no=-1):
-        """Integrated function: set power flow initiation state.
-
-        Args:
-            sample (np.ndarray): the sample setting, np.array([vg, pg, pl, ql]).
-            generator_v_list (list, optional): list of generators with controllable v. Defaults to None.
-            generator_p_list (list, optional): list of generators with controllable p. Defaults to None.
-            load_p_list (list, optional): list of loads with controllable p. Defaults to None.
-            load_q_list (list, optional): list of loads with controllable q. Defaults to None.
-            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
-        """        
-        sample_part = sample.copy()
-        # gen v set
-        if generator_v_list is None:
-            generator_v_list = np.arange(self.get_generator_number(sys_no))
-        self.set_generator_all_v_set(sample_part[:len(generator_v_list)], generator_v_list, sys_no)
-        sample_part = sample_part[len(generator_v_list):]
-        # gen p set
-        if generator_p_list is None:
-            generator_p_list = self.get_generator_all_ctrl(None, sys_no)
-        self.set_generator_all_p_set(sample_part[:len(generator_p_list)], generator_p_list, sys_no)
-        sample_part = sample_part[len(generator_p_list):]
-        # load p set
-        if load_p_list is None:
-            load_p_list = np.arange(self.get_load_number(sys_no))
-        self.set_load_all_p_set(sample_part[:len(load_p_list)], load_p_list, sys_no)
-        sample_part = sample_part[len(load_p_list):]
-        # load q set
-        if load_q_list is None:
-            load_q_list = np.arange(self.get_load_number(sys_no))
-        self.set_load_all_q_set(sample_part[:len(load_q_list)], load_q_list, sys_no)
-
-    def get_pf_bounds(self, 
-                      generator_v_list=None,
-                      generator_p_list=None,
-                      load_p_list=None,
-                      load_q_list=None,
-                      load_max=None,
-                      load_min=None,
-                      sys_no=-1):
-        """Integrated function: get power flow bounds according to settings.
-
-        Args:
-            generator_v_list (list, optional): list of generators with controllable v. Defaults to None.
-            generator_p_list (list, optional): list of generators with controllable p. Defaults to None.
-            load_p_list (list, optional): list of loads with controllable p. Defaults to None.
-            load_q_list (list, optional): list of loads with controllable q. Defaults to None.
-            load_max (float, optional): the load upper bound settings. Defaults to None. 
-                None means loading the default settings shown by self.__load_pq_bounds.
-                -1 means loading the current load settings.
-                Others mean loading the original load settings and multiply the given load_max.
-            load_min (float, optional): the load lower bound settings. Similar to load_max. Defaults to None.
-            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
-
-        Returns:
-            list: [upper_bound, lower_bound]. The two bounds meet with np.array([vg, pg, pl, ql]).
-        """        
-        # gen v max&min
-        if generator_v_list is None: generator_v_list = np.arange(self.get_generator_number(sys_no))
-        gen_vmax = self.get_generator_all_vmax(generator_v_list, sys_no)
-        gen_vmin = self.get_generator_all_vmin(generator_v_list, sys_no)
-        # gen p max&min
-        if generator_p_list is None: generator_p_list = self.get_generator_all_ctrl(None, sys_no)
-        gen_pmax = self.get_generator_all_pmax(generator_p_list, sys_no)
-        gen_pmin = self.get_generator_all_pmin(generator_p_list, sys_no)
-        # gen p check
-        if np.all(gen_pmax == 0) and np.all(gen_pmin == 0):
-            if sys_no != -1:
-                for i in range(sys_no):
-                    generator_p_list += self.get_bus_number(i)
-            gen_pmax = self.__generator_p_origin[generator_p_list] * self.__generator_p_bounds[1]
-            gen_pmin = self.__generator_p_origin[generator_p_list] * self.__generator_p_bounds[0]
-        # load bound
-        load_max = self.__load_pq_bounds[1] if load_max is None else load_max
-        load_min = self.__load_pq_bounds[0] if load_min is None else load_min
-        # load p max&min
-        if load_p_list is None: load_p_list = np.arange(self.get_load_number(sys_no))
-        if load_max == -1: load_pmax = self.get_load_all_p_set(load_p_list, sys_no)
-        if load_min == -1: load_pmin = self.get_load_all_p_set(load_p_list, sys_no)
-        if sys_no != -1:
-            for i in range(sys_no): load_p_list += self.get_bus_number(i)
-        if load_max != -1: load_pmax = self.__load_p_origin[load_p_list] * load_max
-        if load_min != -1: load_pmin = self.__load_p_origin[load_p_list] * load_min
-        # load q max&min
-        if load_q_list is None: load_q_list = np.arange(self.get_load_number(sys_no))
-        if load_max == -1: load_qmax = self.get_load_all_q_set(load_q_list, sys_no)
-        if load_min == -1: load_qmin = self.get_load_all_q_set(load_q_list, sys_no)
-        if sys_no != -1:
-            for i in range(sys_no): load_q_list += self.get_bus_number(i)
-        if load_max != -1: load_qmax = self.__load_q_origin[load_q_list] * load_max
-        if load_min != -1: load_qmin = self.__load_q_origin[load_q_list] * load_min
-        # concatenate bounds
-        lower = np.concatenate((gen_vmin, gen_pmin, load_pmin, load_qmin))
-        upper = np.concatenate((gen_vmax, gen_pmax, load_pmax, load_qmax))
-        idx = lower > upper
-        lower[idx], upper[idx] = upper[idx], lower[idx]
-        assert np.any(lower > upper) == False, "get lf bounds failed, please check!"
-        return [lower, upper]
-
-    def get_pf_status_check(self):
-        """Integrated function: get power flow state. [convergence, slack generation is bigger than 0, all the voltages are within acceptable range]
-
-        Returns:
-            list: power flow state, [convergence, slack, voltage].
-        """        
-        if self.cal_pf_basic_power_flow_nr() > 0:
-            slack_p = self.get_generator_all_lf_result(self.__indexSlack)[:, 0]
-            if np.all(slack_p > 0.0):
-                lf_v = self.get_bus_all_lf_result()[:, 0]
-                if np.any(lf_v > self.get_bus_all_vmax()) or np.any(lf_v < self.get_bus_all_vmin()):
-                    return [True, True, False]
-                else:
-                    return [True, True, True]
-            else:
-                return [True, False, False]
-        else:
-            return [False, False, False]
-
-    # pf sampler, gen_v, ctrl_gen_p, load_p, load_q
-    def get_pf_sample_simple_random(self, num=1, generator_v_list=None, generator_p_list=None, load_p_list=None, load_q_list=None, 
-                                    load_max=None, load_min=None, sys_no=-1, check_converge=True, check_slack=True, check_voltage=True):
-        """Integrated function: get power flow samples using simple random sampling method.
-
-        Args:
-            num (int, optional): number of samples. Defaults to 1.
-            generator_v_list (list, optional): list of generators with controllable v. Defaults to None.
-            generator_p_list (list, optional): list of generators with controllable p. Defaults to None.
-            load_p_list (list, optional): list of loads with controllable p. Defaults to None.
-            load_q_list (list, optional): list of loads with controllable q. Defaults to None.
-            load_max (float, optional): the load upper bound settings. Defaults to None. 
-                None means loading the default settings shown by self.__load_pq_bounds.
-                -1 means loading the current load settings.
-                Others mean loading the original load settings and multiply the given load_max.
-            load_min (float, optional): the load lower bound settings. Similar to load_max. Defaults to None.
-            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
-            check_converge (bool, optional): flag shows whether checking convergence. Defaults to True.
-            check_slack (bool, optional): flag shows whether checking active power generation of slack generators. Defaults to True.
-            check_voltage (bool, optional): flag shows whether checking nodal voltages. Defaults to True.
-
-        Returns:
-            ndarray: power flow settings.
-        """        
-        [lower_bounds, upper_bounds] = self.get_pf_bounds(generator_v_list, generator_p_list, load_p_list, load_q_list, load_max, load_min, sys_no)
-        bound_size = len(lower_bounds)
-        sample_buffer = list()
-        iter_buffer = list()
-        sample_total = 0
-        for _ in range(num):
-            [converge, valid_slack, valid_v] = [False, False, False]
-            while (False in [converge, valid_slack, valid_v]):
-                r_vector = self.__rng.random(bound_size)
-                cur_status = lower_bounds + (upper_bounds - lower_bounds) * r_vector
-                sample_total += 1
-                self.set_pf_initiation(cur_status, generator_v_list, generator_p_list, load_p_list, load_q_list)
-                # total_load = sum(self.get_load_all_p_set())
-                # total_slack = sum(self.get_generator_all_pmax(self.__indexSlack))
-                # total_ctrl = sum(self.get_generator_all_p_set(self.__indexCtrlGen))
-                # if total_load < total_ctrl or total_load > total_ctrl + total_slack:
-                #     continue
-                [converge, valid_slack, valid_v] = self.get_pf_status_check()
-                [converge, valid_slack, valid_v] = [x or y for x, y in zip([converge, valid_slack, valid_v], [not check_converge, not check_slack, not check_voltage])]
-                iter_buffer.append(self.get_info_lf_iter())
-                if False not in [converge, valid_slack, valid_v]:
-                    break
-            sample_buffer.append(cur_status)
-        # print(f'total sample: {sample_total}')  
-        # print(f'iteration number: {iter_buffer}')
-        return sample_buffer
-        
-    def get_pf_sample_stepwise(self, num=1, generator_v_list=None, generator_p_list=None, load_p_list=None, load_q_list=None, 
-                               load_max=None, load_min=None, sys_no=-1, check_converge=True, check_slack=True, check_voltage=True):
-        """Integrated function: get power flow samples using stepwise sampling method.
-           1. sampling load p. 
-           2. sampling generator p. 10 times.
-           3. sampling load q. 10 times.
-           4. sampling voltages. 10 times.
-
-        Args:
-            num (int, optional): number of samples. Defaults to 1.
-            generator_v_list (list, optional): list of generators with controllable v. Defaults to None.
-            generator_p_list (list, optional): list of generators with controllable p. Defaults to None.
-            load_p_list (list, optional): list of loads with controllable p. Defaults to None.
-            load_q_list (list, optional): list of loads with controllable q. Defaults to None.
-            load_max (float, optional): the load upper bound settings. Defaults to None. 
-                None means loading the default settings shown by self.__load_pq_bounds.
-                -1 means loading the current load settings.
-                Others mean loading the original load settings and multiply the given load_max.
-            load_min (float, optional): the load lower bound settings. Similar to load_max. Defaults to None.
-            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
-            check_converge (bool, optional): flag shows whether checking convergence. Defaults to True.
-            check_slack (bool, optional): flag shows whether checking active power generation of slack generators. Defaults to True.
-            check_voltage (bool, optional): flag shows whether checking nodal voltages. Defaults to True.
-
-        Returns:
-            ndarray: power flow settings.
-        """        
-        if generator_v_list is None: generator_v_list = np.arange(self.get_generator_number(sys_no))
-        if generator_p_list is None: generator_p_list = self.get_generator_all_ctrl(None, sys_no)
-        if load_p_list is None: load_p_list = np.arange(self.get_load_number(sys_no))
-        if load_q_list is None: load_q_list = np.arange(self.get_load_number(sys_no))
-        [lower_bounds, upper_bounds] = self.get_pf_bounds(generator_v_list, generator_p_list, load_p_list, load_q_list, load_max, load_min, sys_no)
-        gen_vmax = upper_bounds[:len(generator_v_list)]
-        gen_vmin = lower_bounds[:len(generator_v_list)]
-        gen_pmax = upper_bounds[len(generator_v_list):len(generator_v_list)+len(generator_p_list)]
-        gen_pmin = lower_bounds[len(generator_v_list):len(generator_v_list)+len(generator_p_list)]
-        slack_pmax = self.get_generator_all_pmax(self.__indexSlack)
-        slack_pmin = self.get_generator_all_pmin(self.__indexSlack)
-        load_pmax = upper_bounds[len(generator_v_list)+len(generator_p_list):len(generator_v_list)+len(generator_p_list)+len(load_p_list)]
-        load_pmin = lower_bounds[len(generator_v_list)+len(generator_p_list):len(generator_v_list)+len(generator_p_list)+len(load_p_list)]
-        load_qmax = upper_bounds[-len(load_q_list):]
-        load_qmin = lower_bounds[-len(load_q_list):]
-        sample_buffer = list()
-        sample_total = 0
-        gen_v = self.get_generator_all_v_set(generator_v_list, sys_no)
-        gen_p = np.zeros(len(generator_p_list))
-        sample_no = 0
-        while sample_no < num:
-            # load p max&min
-            load_psum = -1.0
-            while load_psum < (sum(gen_pmin) + sum(slack_pmin)) or load_psum > (sum(gen_pmax) + sum(slack_pmax)):
-                load_p = load_pmin + (load_pmax - load_pmin) * self.__rng.random(len(load_pmax))
-                load_psum = sum(load_p)
-            # slack p
-            load_psum = sum(load_p)
-            s_pmin = max(load_psum - sum(gen_pmax), sum(slack_pmin))
-            s_pmax = min(load_psum - sum(gen_pmin), sum(slack_pmax))
-            s_pmin = s_pmin + (s_pmax - s_pmin) * self.__rng.random()
-            s_pmax = s_pmin + (s_pmax - s_pmin) * self.__rng.random()
-            # print('slack', s_pmin, s_pmax)
-            # gen p
-            for _ in range(10):
-                gen_p.fill(0.)
-                gen_order = self.__rng.choice(np.arange(len(gen_p)), len(generator_p_list), replace=False)
-                load_psum = sum(load_p)
-                # random slack
-                for i in range(len(gen_p)):
-                    gen_no = gen_order[i]
-                    remain_gen = gen_order[i+1:] if i+1 < len(gen_p) else []
-                    pmin = max(load_psum - sum(gen_pmax[remain_gen]) - s_pmax, gen_pmin[gen_no])
-                    pmax = min(load_psum - sum(gen_pmin[remain_gen]) - s_pmin, gen_pmax[gen_no])
-                    # print('generator', gen_no, [pmin, pmax])
-                    gen_p[gen_no] = pmin + (pmax - pmin) * self.__rng.random()
-                    load_psum -= gen_p[gen_no]
-                # print('remaining', load_psum)
-                # load q
-                for _ in range(10):
-                    load_q = load_qmin + (load_qmax - load_qmin) * self.__rng.random(len(load_qmax))
-                    # gen v
-                    for _ in range(10):
-                        gen_v = gen_vmin + (gen_vmax - gen_vmin) * self.__rng.random(len(gen_vmax))
-                        cur_status = np.concatenate([gen_v, gen_p, load_p, load_q])
-                        self.set_pf_initiation(cur_status)
-                        [converge, valid_slack, valid_v] = self.get_pf_status_check()
-                        sample_total += 1
-                        [converge, valid_slack, valid_v] = [x or y for x, y in zip([converge, valid_slack, valid_v], [not check_converge, not check_slack, not check_voltage])]
-                        if False not in [converge, valid_slack, valid_v]: break
-                    if False not in [converge, valid_slack, valid_v]: break
-                if False not in [converge, valid_slack, valid_v]: break
-            if False not in [converge, valid_slack, valid_v]: 
-                sample_no += 1
-                sample_buffer.append(cur_status)
-        print(f'total sample: {sample_total}')  
-        return sample_buffer
-    
-    def get_pf_sample_all(self, num=1, generator_v_list=None, generator_p_list=None, load_p_list=None, load_q_list=None, load_max=None, load_min=None, sys_no=-1):
-        """Integration function: power Flow Sampler, return initial state and convergence iteration number.
-
-        Args:
-            num (int, optional): Number of samples. Defaults to 1.
-            generator_v_list (list, optional): list of generators with controllable v. Defaults to None.
-            generator_p_list (list, optional): list of generators with controllable p. Defaults to None.
-            load_p_list (list, optional): list of loads with controllable p. Defaults to None.
-            load_q_list (list, optional): list of loads with controllable q. Defaults to None.
-            load_max (float, optional): the load upper bound settings. Defaults to None. 
-                None means loading the default settings shown by self.__load_pq_bounds.
-                -1 means loading the current load settings.
-                Others mean loading the original load settings and multiply the given load_max.
-            load_min (float, optional): the load lower bound settings. Similar to load_max. Defaults to None.
-            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
-
-        Returns:
-            list, list: sample list and iteration list (-1 for unconvergence)
-        """        
-        [lower_bounds, upper_bounds] = self.get_pf_bounds(generator_v_list, generator_p_list, load_p_list, load_q_list, load_max, load_min, sys_no)
-        bound_size = len(lower_bounds)
-        sample_buffer = list()
-        iter_buffer = list()
-        for _ in range(num):
-            r_vector = self.__rng.random(bound_size)
-            cur_status = lower_bounds + (upper_bounds - lower_bounds) * r_vector
-            # sample_buffer.append(cur_status)
-            sample_buffer.append([cur_status, np.concatenate([cur_status[:10], r_vector[10:]])])
-            self.set_pf_initiation(cur_status, generator_v_list, generator_p_list, load_p_list, load_q_list)
-            iter_buffer.append(self.cal_pf_basic_power_flow_nr())
-        return sample_buffer, iter_buffer
-
-    def check_stability(self, maximum_delta=180.):
-        """Integration function: check stability of the simulation.
-
-        Args:
-            maximum_delta (float, optional): the acceptable maximum rotor angle. Defaults to 180..
-
-        Returns:
-            bool: flag shows whether the simulation is stable.
-        """        
-        std_result = self.get_acsystem_all_ts_result()[0]
-        if std_result[:, 1].max() < maximum_delta:
-            fin_step = self.get_info_ts_finish_step()
-            if fin_step + 1 != self.get_info_ts_max_step():
-                print(fin_step, std_result[:, 1].max())
-                # raise Exception("stable and early finish, please check!")
-            return True
-        else:
-            return False
-
     def _buffer_tests(self):
         """Buffer test.
         """        
@@ -3697,40 +3726,41 @@ if __name__ == '__main__':
     # """
     start_time = datetime.datetime.now()
     api = Py_PSOPS(rng=np.random.default_rng(4242))
-    results = np.load('/archive/pythonPS/gym_psops/envs/psops/10-39.npy')
-    index = results[0]
-    load_name = api.get_load_all_bus_name()
-    gen_name = api.get_generator_all_bus_name()
-    idx = [0] * 59
-    inverse_idx = [0] * 59
-    for i in range(len(index)):
-        if i < 20:
-            name = 'BUS-' + index[i].strip('load-')
-            idx[np.where(load_name == name)[0][0]+19] = i
-            inverse_idx[i] = np.where(load_name == name)[0][0] + 19
-        elif i < 40:
-            name = 'BUS-' + index[i].strip('load-')
-            idx[np.where(load_name == name)[0][0]+39] = i
-            inverse_idx[i] = np.where(load_name == name)[0][0] + 39
-        elif i < 49:
-            name = 'BUS-' + index[i].strip('Gen')
-            idx[np.where(gen_name == name)[0][0]+10] = i
-            inverse_idx[i] = np.where(gen_name == name)[0][0] + 10
-        elif i < 59:
-            name = 'BUS-' + index[i].strip('Gen')
-            idx[np.where(gen_name == name)[0][0]] = i
-            inverse_idx[i] = np.where(gen_name == name)[0][0]
-        else: raise Exception('too long for cloudpss ieee 39')
-    states, convergences = api.get_pf_sample_all(10000)
-    convergences = np.array(convergences)
-    for i in range(len(states)):
-        states[i][0][10:] *= 100.0
-        # print(states[i])
-        states[i][0] = states[i][0][inverse_idx]
-        states[i][1] = states[i][1][inverse_idx]
-        # print(states[i])
-    print(f'converged: {np.where(convergences > 0)[0].shape[0]}. unconverged: {np.where(convergences < 0)[0].shape[0]}.')
-    np.savez('./samples.npz', sample=states, iter=convergences)
+    # results = np.load('/archive/pythonPS/gym_psops/envs/psops/10-39.npy')
+    # index = results[0]
+    # load_name = api.get_load_all_bus_name()
+    # gen_name = api.get_generator_all_bus_name()
+    # idx = [0] * 59
+    # inverse_idx = [0] * 59
+    # for i in range(len(index)):
+    #     if i < 20:
+    #         name = 'BUS-' + index[i].strip('load-')
+    #         idx[np.where(load_name == name)[0][0]+19] = i
+    #         inverse_idx[i] = np.where(load_name == name)[0][0] + 19
+    #     elif i < 40:
+    #         name = 'BUS-' + index[i].strip('load-')
+    #         idx[np.where(load_name == name)[0][0]+39] = i
+    #         inverse_idx[i] = np.where(load_name == name)[0][0] + 39
+    #     elif i < 49:
+    #         name = 'BUS-' + index[i].strip('Gen')
+    #         idx[np.where(gen_name == name)[0][0]+10] = i
+    #         inverse_idx[i] = np.where(gen_name == name)[0][0] + 10
+    #     elif i < 59:
+    #         name = 'BUS-' + index[i].strip('Gen')
+    #         idx[np.where(gen_name == name)[0][0]] = i
+    #         inverse_idx[i] = np.where(gen_name == name)[0][0]
+    #     else: raise Exception('too long for cloudpss ieee 39')
+    # states, convergences = api.get_pf_sample_all(10000)
+    # convergences = np.array(convergences)
+    # for i in range(len(states)):
+    #     states[i][0][10:] *= 100.0
+    #     # print(states[i])
+    #     states[i][0] = states[i][0][inverse_idx]
+    #     states[i][1] = states[i][1][inverse_idx]
+    #     # print(states[i])
+    # print(f'converged: {np.where(convergences > 0)[0].shape[0]}. unconverged: {np.where(convergences < 0)[0].shape[0]}.')
+    # np.savez('./samples.npz', sample=states, iter=convergences)
+    #####################################################################################################################
     # for result in results[1:]:
     #     res = result.copy().astype(float)
     #     res[:49] /= 100.0

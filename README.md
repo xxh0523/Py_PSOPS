@@ -7,6 +7,8 @@ Currently, It can solve power flow with Newton-Raphson method and perform electr
 
 The cpp PSOPS is compiled as a library file. The Python ctypes library is used to access the external functions of PSOPS. Only the Python API is made public. 
 
+Currently, the trained torch modules (see **referenc [2]**) are not be supported when using library files PSOPS_Source.dll or PSOPS.so.1.0.0. The neural modules can only be supported in excution files PSOPS_Source.exe or PSOPS_Source. If you want the excution files PSOPS_Source.exe or PSOPS_Source, please contact us (eexiaoxh@gmail.com).
+
 # Environment
 -[Windows 7, 8, 10]
 
@@ -67,8 +69,10 @@ After putting all the files in place, we can debug and run Py_PSOPS normally.
 # References
 [1] **T. Xiao**, Y. Chen*, J. Wang, S. Huang, W. Tong, and T. He, “Exploration of AI-Oriented Power System Transient Stability Simulations,” [arxiv](http://arxiv.org/abs/2110.00931).
 
-[2] **T. Xiao**, W. Tong, and J. Wang*, “A New Fully Parallel BBDF Method in Transient Stability Simulations,” *IEEE Trans. Power Syst.*, vol. 35, no. 1, pp. 304–314, Jan. 2020, doi: [10.1109/TPWRS.2019.2933637](https://ieeexplore.ieee.org/document/8798601/).
+[2] **T. Xiao**, Y. Chen*, T. He, and H. Guan, “Neural ODE and DAE Modules for Power System Dynamic Component Modeling,” [arxiv](https://arxiv.org/abs/2110.12981).
 
-[3] **T. Xiao**, W. Tong, and J. Wang*, “Study on Reducing the Parallel Overhead of the BBDF Method for Power System Transient Stability Simulations,” *IEEE Trans. Power Syst.*, vol. 35, no. 1, pp. 539–550, Jan. 2020, doi: [10.1109/TPWRS.2019.2929775](https://ieeexplore.ieee.org/document/8765766/).
+[3] **T. Xiao**, W. Tong, and J. Wang*, “A New Fully Parallel BBDF Method in Transient Stability Simulations,” *IEEE Trans. Power Syst.*, vol. 35, no. 1, pp. 304–314, Jan. 2020, doi: [10.1109/TPWRS.2019.2933637](https://ieeexplore.ieee.org/document/8798601/).
 
-[4] **T. Xiao**, J. Wang*, Y. Gao, and D. Gan, “Improved Sparsity Techniques for Solving Network Equations in Transient Stability Simulations,” *IEEE Trans. Power Syst.*, vol. 33, no. 5, pp. 4878–4888, Sep. 2018, doi: [10.1109/TPWRS.2018.2803200](https://ieeexplore.ieee.org/document/8283798/).
+[4] **T. Xiao**, W. Tong, and J. Wang*, “Study on Reducing the Parallel Overhead of the BBDF Method for Power System Transient Stability Simulations,” *IEEE Trans. Power Syst.*, vol. 35, no. 1, pp. 539–550, Jan. 2020, doi: [10.1109/TPWRS.2019.2929775](https://ieeexplore.ieee.org/document/8765766/).
+
+[5] **T. Xiao**, J. Wang*, Y. Gao, and D. Gan, “Improved Sparsity Techniques for Solving Network Equations in Transient Stability Simulations,” *IEEE Trans. Power Syst.*, vol. 33, no. 5, pp. 4878–4888, Sep. 2018, doi: [10.1109/TPWRS.2018.2803200](https://ieeexplore.ieee.org/document/8283798/).

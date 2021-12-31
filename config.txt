@@ -4,7 +4,8 @@
 //Dir: ./sample/628ieee30/ieee-30.DAT      
 //Dir: ./sample/628ieee39/ieee-39.DAT      
 //Dir: ./sample/628ieee39/ieee-39.noq.classic.DAT
-Dir: ./sample/628ieee39/ieee-39.origin.DAT
+//Dir: ./sample/628ieee39/ieee-39.origin.DAT
+Dir: ./sample/628ieee39/ieee-39.neural.DAT
 //Dir: ./sample/628shenzhen/SHENZHEN.DAT
 //Dir: E:/000FatalCriticalData/05postdoc/01workspace/00Cpp/PSOPS-Console-QT-V/sample/628ieee39/tmp1.DAT      
 //Dir: ./sample/628ieee43/ieee-43.DAT      
