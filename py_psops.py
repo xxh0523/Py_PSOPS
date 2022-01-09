@@ -741,7 +741,7 @@ class Py_PSOPS:
             For example, the maximum simulation duration is 10 seconds and the integration step is 0.01, i.e., the maximum simulation step is 1000.
             Considering the starting step at instant t=0.00, the total number of simulation steps is 1000 + 1 = 1001.
         """        
-        return self.__psDLL.cal_TS_Simulation_TI_SV(start_time, contingency_no)
+        return self.__psDLL.cal_Transient_Stability_Simulation_TI_SV(start_time, contingency_no)
     
     # TODO api for other integration method and sparse vector method.
 
@@ -3570,8 +3570,9 @@ class Py_PSOPS:
         Returns:
             list: information of the aclines cutting out.
         """        
-        if topo_change == 0:
-            self.set_network_topology_original()
+        self.set_network_topology_original()
+        if topo_change == 0: 
+            self.set_network_rebuild_all_network_data()
             return None
         acline_no = np.arange(self.get_acline_number(sys_no))
         # acline_no = np.array([1,2,3,4,7,8,9,10,11,14,15,16,17,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33])
@@ -3580,15 +3581,15 @@ class Py_PSOPS:
         while True:
             selected_no = self.__rng.choice(acline_no, size=topo_change, replace=False)
             for line_no in selected_no:
-                self.set_network_acline_connectivity(True, line_no, sys_no)
+                self.set_network_acline_connectivity(False, line_no, sys_no)
             if self.get_network_n_acsystem_check_connectivity() == self.__nACSystem:
                 break
             for line_no in selected_no:
-                self.set_network_acline_connectivity(False, line_no, sys_no)
+                self.set_network_acline_connectivity(True, line_no, sys_no)
             n_sample += 1
             assert n_sample < 100, "topology sample failed, please check!"
         self.set_network_rebuild_all_network_data()
-        print([[line_no, self.get_acline_info(line_no, sys_no)] for line_no in selected_no])
+        # print([[line_no, self.get_acline_info(line_no, sys_no)] for line_no in selected_no])
         return [[line_no, self.get_acline_info(line_no, sys_no)] for line_no in selected_no]
 
     ################################################################################################
