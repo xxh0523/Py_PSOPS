@@ -1,7 +1,6 @@
-from gym_psops.envs.env_OPF import worker_opf
-from sample_generator.sample_generator import SampleGenerator, plot_dots, plot_show
-from gym_psops.envs.psops.py_psops import Py_PSOPS
-from ray.state import current_node_id
+from unittest import TestProgram
+from sample_generator import SampleGenerator, plot_dots, plot_show
+from py_psops import Py_PSOPS
 from sample_generator import RayWorkerForSampleGenerator, sample_generator
 from sample_generator import read_result
 import numpy as np
@@ -10,23 +9,204 @@ import ray
 import time
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import pandas as pd
 
 
 def grid_sampler_for_st_gcn():
     test_worker = RayWorkerForSampleGenerator(0, 1)
     test_worker.grid_sampler_for_st_gcn()
 
-
+    
 if __name__ == '__main__':
     ct = -time.time()
 
-    worker = SampleGenerator(0, 1)
-    worker.ts_sampler_simple_random_for_gen_0(gen_no=1, num=4000, cut_length=301, limit_angle_range=True,
-                                              result_path='./00saved_results/samples/generator_epie/300_gen31_p3_all_4000_masked_samples_gen_0')
-    # worker.ts_sampler_simple_random_for_gen_6(gen_no=0, num=4000, cut_length=1001, limit_angle_range=False,
-                                            #   result_path='./00saved_results/samples/generator_6/1000_gen30_all_4000_nolimit_samples_gen_6')
-    # worker.ts_sampler_simple_random_for_avr_1(gen_no=0, num=4000, cut_length=1001, limit_angle_range=False,
-                                            #   result_path='/home/xiaotannan/pythonPS/00saved_results/samples/avr_1/1000_gen30_4000_nolimit_samples_avr_1')
+    # worker = SampleGenerator(4242, 1)
+
+    # grid search for sopf
+    # grid_sampler_for_sopf([0,8],10,100)
+
+    # d_path = '/home/xiaotannan/pythonPS/00saved_results/models/scopf_agent/final_ddpg_closest_warm_prl/train_and_eval.npz'
+    # d = np.load(d_path, allow_pickle=True)
+    # data_eval = d['eval'][:11].transpose(1,0)
+    # df = pd.DataFrame(data_eval)
+    # df.to_excel('data_piece.xlsx', index=False)
+    # Picture_Drawer.draw_3d_pic(d[:,0], d[:,1], d[:,4])
+
+    # gen-30, avr-1, ramdom fault, limit angle range, balance stable and unstable
+    # worker.ts_sampler_simple_random_for_avr_1(gen_no=0, 
+    #                                           result_path='/home/xiaotannan/pythonPS/00saved_results/samples/avr_1/gen_30_4000_1000_no_fault_limit_balanced',
+    #                                           num=4000, 
+    #                                           test_per=0.2,
+    #                                           cut_length=1001, 
+    #                                           check_voltage=False,
+    #                                           check_slack=False,
+    #                                           limit_3phase_short=False,
+    #                                           must_stable=False,
+    #                                           limit_angle_range=True,
+    #                                           balance_stability=True,
+    #                                           need_larger_than=None,
+    #                                           need_smaller_than=None
+    #                                           )
+    # gen-30, avr-1, limit fault, limit angle range, must stable
+    # worker.ts_sampler_simple_random_for_avr_1(gen_no=0, 
+    #                                           result_path='/home/xiaotannan/pythonPS/00saved_results/samples/avr_1/gen_30_4000_1000_fault_limit_must_stable',
+    #                                           num=4000, 
+    #                                           test_per=0.2,
+    #                                           cut_length=1001, 
+    #                                           check_voltage=True,
+    #                                           check_slack=True,
+    #                                           limit_3phase_short=True,
+    #                                           must_stable=True,
+    #                                           limit_angle_range=False,
+    #                                           balance_stability=False,
+    #                                           need_larger_than=None,
+    #                                           need_smaller_than=None
+    #                                           )
+
+    # gen-33, avr-1, ramdom fault, limit angle range, balance stable and unstable, larger than 3.25, smaller than 0.5
+    # worker.ts_sampler_simple_random_for_avr_1(gen_no=3, 
+    #                                           result_path='/home/xiaotannan/pythonPS/00saved_results/samples/avr_1/gen_33_4000_1000_no_fault_limit_balanced',
+    #                                           num=4000, 
+    #                                           test_per=0.2,
+    #                                           cut_length=1001, 
+    #                                           check_voltage=False,
+    #                                           check_slack=False,
+    #                                           limit_3phase_short=False,
+    #                                           must_stable=False,
+    #                                           limit_angle_range=True,
+    #                                           balance_stability=True,
+    #                                           need_larger_than=3.25,
+    #                                           need_smaller_than=0.5
+    #                                           )
+    # gen-33, avr-1, limit fault, limit angle range, must stable, larger than 3.25, smaller than 0.5
+    # worker.ts_sampler_simple_random_for_avr_1(gen_no=3, 
+    #                                           result_path='/home/xiaotannan/pythonPS/00saved_results/samples/avr_1/gen_33_4000_1000_fault_limit_must_stable',
+    #                                           num=4000, 
+    #                                           test_per=0.2,
+    #                                           cut_length=1001, 
+    #                                           check_voltage=True,
+    #                                           check_slack=True,
+    #                                           limit_3phase_short=True,
+    #                                           must_stable=True,
+    #                                           limit_angle_range=False,
+    #                                           balance_stability=False,
+    #                                           need_larger_than=3.25,
+    #                                           need_smaller_than=0.5
+    #                                           )
+    
+    # gen-31, gen-0, ramdom fault, limit angle range, balance stable and unstable
+    # worker.ts_sampler_simple_random_for_gen_0(gen_no=1, 
+    #                                           result_path='/home/xiaotannan/pythonPS/00saved_results/samples/generator_epie/gen_31_4000_1000_no_fault_limit_balanced',
+    #                                           num=4000, 
+    #                                           test_per=0.2,
+    #                                           cut_length=1001, 
+    #                                           check_voltage=False,
+    #                                           check_slack=False,
+    #                                           limit_3phase_short=False,
+    #                                           must_stable=False,
+    #                                           limit_angle_range=True,
+    #                                           balance_stability=True
+    #                                           )
+    # gen-31, gen-0, limit fault, limit angle range, must stable
+    # worker.ts_sampler_simple_random_for_gen_0(gen_no=1, 
+    #                                           result_path='/home/xiaotannan/pythonPS/00saved_results/samples/generator_epie/gen_31_4000_1000_fault_limit_must_stable',
+    #                                           num=4000, 
+    #                                           test_per=0.2,
+    #                                           cut_length=1001, 
+    #                                           check_voltage=True,
+    #                                           check_slack=True,
+    #                                           limit_3phase_short=True,
+    #                                           must_stable=True,
+    #                                           limit_angle_range=False,
+    #                                           balance_stability=False
+    #                                           )
+
+    # Bus16-19, district, ramdom fault, limit angle range, balance stable and unstable
+    # worker.ts_sampler_simple_random_for_custom_district(#result_path='/home/xiaotannan/pythonPS/00saved_results/samples/district/acline_16_19_4000_1000_no_fault_limit_balanced',
+    #                                                     result_path='/home/xiaotannan/pythonPS/00saved_results/samples/district/acline_solar_16_19_4000_1000_no_fault_limit_balanced',
+    #                                                     num=8000, 
+    #                                                     test_per=0.1,
+    #                                                     cut_length=1001, 
+    #                                                     check_voltage=False,
+    #                                                     check_slack=False,
+    #                                                     limit_3phase_short=False,
+    #                                                     must_stable=False,
+    #                                                     limit_angle_range=True,
+    #                                                     balance_stability=True
+    #                                                     )
+    # Bus16-19, district, limit fault, limit angle range, must stable
+    # worker.ts_sampler_simple_random_for_custom_district(#result_path='/home/xiaotannan/pythonPS/00saved_results/samples/district/acline_16_19_4000_1000_fault_limit_must_stable',
+    #                                                     result_path='/home/xiaotannan/pythonPS/00saved_results/samples/district/acline_with_inner_P_16_19_4000_1000_fault_limit_must_stable',
+    #                                                     #result_path='/home/xiaotannan/pythonPS/00saved_results/samples/district/acline_solar_16_19_4000_1000_fault_limit_must_stable',
+    #                                                     num=8000, 
+    #                                                     test_per=0.1,
+    #                                                     cut_length=1001, 
+    #                                                     check_voltage=True,
+    #                                                     check_slack=True,
+    #                                                     limit_3phase_short=True,
+    #                                                     must_stable=True,
+    #                                                     limit_angle_range=False,
+    #                                                     balance_stability=False
+    #                                                     )
+
+    # Bus16-19, solar district, ramdom fault, limit angle range, balance stable and unstable
+    # worker.ts_sampler_simple_random_for_Solar_district(result_path='/home/xiaotannan/pythonPS/00saved_results/samples/district/acline_solar_16_19_4000_1000_no_fault_limit_balanced',
+    #                                                    num=8000, 
+    #                                                    test_per=0.1,
+    #                                                    cut_length=1001, 
+    #                                                    check_voltage=False,
+    #                                                    check_slack=False,
+    #                                                    limit_3phase_short=False,
+    #                                                    must_stable=False,
+    #                                                    limit_angle_range=True,
+    #                                                    balance_stability=True
+    #                                                    )
+    # Bus16-19, solar district, limit fault, limit angle range, must stable
+    # worker.ts_sampler_simple_random_for_Solar_district(#result_path='/home/xiaotannan/pythonPS/00saved_results/samples/district/acline_solar_16_19_4000_1000_fault_limit_must_stable',
+    #                                                    result_path='/home/xiaotannan/pythonPS/00saved_results/samples/district/acline_solar_16_19_limit_short_4000_1000_fault_limit_must_stable',
+    #                                                    num_total=8000, 
+    #                                                    test_per=0.1,
+    #                                                    cut_length=1001, 
+    #                                                    check_voltage=True,
+    #                                                    check_slack=True,
+    #                                                    limit_3phase_short=True,
+    #                                                 #    limit_3phase_short=False,
+    #                                                    must_stable=True,
+    #                                                    limit_angle_range=False,
+    #                                                    balance_stability=False
+    #                                                    )
+
+    # gen-31, gen-solar, ramdom fault, limit angle range, balance stable and unstable
+    # worker.ts_sampler_simple_random_for_gen_9_Solar(gen_no=1, 
+    #                                                 result_path='/home/xiaotannan/pythonPS/00saved_results/samples/generator_solar/gen_31_4000_1000_no_fault_limit_balanced',
+    #                                                 num=4000, 
+    #                                                 test_per=0.2,
+    #                                                 cut_length=1001, 
+    #                                                 check_voltage=False,
+    #                                                 check_slack=False,
+    #                                                 limit_3phase_short=False,
+    #                                                 must_stable=False,
+    #                                                 limit_angle_range=True,
+    #                                                 balance_stability=True
+    #                                                 )
+    # gen-31, gen-solar, limit fault, limit angle range, must stable
+    # worker.ts_sampler_simple_random_for_gen_9_Solar(gen_no=1, 
+    #                                                 result_path='/home/xiaotannan/pythonPS/00saved_results/samples/generator_solar/gen_31_4000_1000_fault_limit_must_stable',
+    #                                                 num=4000, 
+    #                                                 test_per=0.2,
+    #                                                 cut_length=1001, 
+    #                                                 check_voltage=True,
+    #                                                 check_slack=True,
+    #                                                 limit_3phase_short=True,
+    #                                                 must_stable=True,
+    #                                                 limit_angle_range=False,
+    #                                                 balance_stability=False
+    #                                                 )
+
+    # worker.pf_sampler_for_qifeng(num=10000, 
+                                #  result_path='/home/xiaotannan/pythonPS/00saved_results/samples/powerflow/ieee39_39x10000')
+    # worker.pf_sampler_for_qifeng(num=10000, 
+                                #  result_path='/home/xiaotannan/pythonPS/00saved_results/samples/powerflow/2383wp_2383x10000')
 
     # # worker.ts_sampler_simple_random(10)
     # for i in range(40):
@@ -48,6 +228,11 @@ if __name__ == '__main__':
     # worker.rigid_grid_search()
     # read_result('../results/trace.DAT')
     # grid_sampler_for_st_gcn()
+    worker = SampleGenerator(0, 1)
+    worker.ts_sampler_for_lstm(result_path='./00saved_results/samples/lstm_TSA',
+                               total_num=10000,
+                               round_num=5,
+                               cut_length=31)
     """
     se = int(time.time())
     np.random.seed(se)

@@ -10,12 +10,12 @@
 from ctypes import *
 import platform
 import os
-from sys import float_repr_style, stderr
 import numpy as np
 import datetime
-from numpy.core.fromnumeric import nonzero, size
-from numpy.core.multiarray import inner
-from numpy.lib.function_base import select
+from scipy.stats import qmc
+from tqdm import tqdm
+import ray
+import torch
 
 # Environment variable setting
 parent_dir, _ = os.path.split(os.path.abspath(__file__))
@@ -27,7 +27,7 @@ array_1d_int = np.ctypeslib.ndpointer(dtype=np.int, ndim=1, flags='CONTIGUOUS')
 if platform.system() == 'Windows':
     os.environ['path'] += ';%s\\dll_win' % parent_dir
 elif platform.system() == 'Linux':
-    os.environ['PATH'] += ';%s\\dll_linux' % parent_dir
+    os.environ['PATH'] += ';%s/dll_linux' % parent_dir
 else:
     print('Unknown operating system. Please check!')
     exit(-1)
@@ -44,14 +44,14 @@ class Py_PSOPS:
         # api flag
         self.__flg = flg
         # random state
-        self.set_random_state(np.random.default_rng() if rng is None else rng)
+        self.set_random_state(rng=rng)
         # working direction
         self.__workingDir = parent_dir
         # dll path
         dll_path = self.__workingDir
         # load .dll or .so
         if platform.system() == 'Windows':
-            dll_path += '/dll_win/PSOPS_Source.dll'
+            dll_path += '\\dll_win\\PSOPS_Source.dll'
         elif platform.system() == 'Linux':
             # dll_path += '/dll_linux/libPSOPS-Console-QT-V.so.1.0.0'
             dll_path += '/dll_linux/libPSOPS_Source.so.1.0.0'
@@ -74,7 +74,7 @@ class Py_PSOPS:
         # current total_step
         self.__cur_total_step = -1
         # bounds
-        self.__generator_p_bounds = [0.5, 1.5]
+        self.__generator_p_bounds = [0, 1.5]
         self.__load_pq_bounds = [0.7, 1.2]
         print('api for psops creation successful.')
 
@@ -84,7 +84,13 @@ class Py_PSOPS:
         print('api for psops deletion successful.')
 
     def set_random_state(self, rng):
-        self.__rng = rng
+        if type(rng) is int: 
+            assert rng >= 0, f'int rng should not be negative, current rng is {rng}.'
+            self.__rng = np.random.default_rng(rng)
+        elif rng is not None:
+            self.__rng = rng
+        else:
+            self.__rng = np.random.default_rng()
 
     def _load_dll(self, dll_path: str):
         """Function of loading the .dll or .so file of PSOPS with ctypes library. Load in all the external functions of PSOPS. 
@@ -228,6 +234,10 @@ class Py_PSOPS:
         self.__psDLL.get_Generator_QMin.restype = c_double
         self.__psDLL.get_Generator_Tj.argtypes = [c_int, c_int]
         self.__psDLL.get_Generator_Tj.restype = c_double
+        self.__psDLL.get_Generator_TS_Type.argtypes = [c_int, c_int]
+        self.__psDLL.get_Generator_TS_Type.restype = c_char_p
+        self.__psDLL.set_Generator_Environment_Status.argtypes = [c_int, c_double, c_int, c_int]
+        self.__psDLL.set_Generator_Environment_Status.restype = c_bool
         self.__psDLL.get_Generator_LF_Result.argtypes = [array_1d_double, c_int, c_int]
         self.__psDLL.get_Generator_LF_Result.restype = c_bool
         self.__psDLL.get_Generator_TS_Result_Dimension.argtypes = [c_int, c_int, c_bool]
@@ -535,22 +545,35 @@ class Py_PSOPS:
         Returns:
             list: power flow state, [convergence, slack, voltage].
         """        
+        [converge, slack, voltage] = [False, False, False]
         if self.cal_power_flow_basic_nr() > 0:
+            converge = True
             slack_p = self.get_generator_all_lf_result(self.__indexSlack)[:, 0]
-            if np.all(slack_p > 0.0):
-                lf_v = self.get_bus_all_lf_result()[:, 0]
-                if np.any(lf_v > self.get_bus_all_vmax()) or np.any(lf_v < self.get_bus_all_vmin()):
-                    return [True, True, False]
-                else:
-                    return [True, True, True]
-            else:
-                return [True, False, False]
-        else:
-            return [False, False, False]
+            slack_p_max = self.get_generator_all_pmax(self.__indexSlack)
+            slack_p_min = self.get_generator_all_pmin(self.__indexSlack)
+            if np.all(slack_p >= slack_p_min) and np.all(slack_p <= slack_p_max): slack = True
+            lf_v = self.get_bus_all_lf_result()[:, 0]
+            if np.all(lf_v < self.get_bus_all_vmax()) and np.all(lf_v > self.get_bus_all_vmin()):
+                voltage = True
+        return [converge, slack, voltage]
 
     # pf sampler, gen_v, ctrl_gen_p, load_p, load_q
-    def get_power_flow_sample_simple_random(self, num=1, generator_v_list=None, generator_p_list=None, load_p_list=None, load_q_list=None, 
-                                            load_max=None, load_min=None, sys_no=-1, check_converge=True, check_slack=True, check_voltage=True):
+    def get_power_flow_sample_simple_random(
+        self, 
+        num=1, 
+        generator_v_list=None, 
+        generator_p_list=None, 
+        load_p_list=None, 
+        load_q_list=None, 
+        load_max=None, 
+        load_min=None, 
+        sys_no=-1, 
+        check_converge=True, 
+        check_slack=True, 
+        check_voltage=True,
+        termination_num=None,
+        need_print=False
+        ):
         """Power flow: get power flow samples using simple random sampling method.
 
         Args:
@@ -568,6 +591,8 @@ class Py_PSOPS:
             check_converge (bool, optional): flag shows whether checking convergence. Defaults to True.
             check_slack (bool, optional): flag shows whether checking active power generation of slack generators. Defaults to True.
             check_voltage (bool, optional): flag shows whether checking nodal voltages. Defaults to True.
+            termination_num (int, optional): if the number of samples is too much, the sampling process will terminate. Default to None.
+            need_print (bool, optional): flag shows whether the total number of sampled pf will be printed. Defaults to False.
 
         Returns:
             ndarray: power flow settings.
@@ -577,6 +602,7 @@ class Py_PSOPS:
         sample_buffer = list()
         iter_buffer = list()
         sample_total = 0
+        sample_no = 0
         for _ in range(num):
             [converge, valid_slack, valid_v] = [False, False, False]
             while (False in [converge, valid_slack, valid_v]):
@@ -594,18 +620,32 @@ class Py_PSOPS:
                 iter_buffer.append(self.get_info_lf_iter())
                 if False not in [converge, valid_slack, valid_v]:
                     break
+                if termination_num is not None and sample_total >= termination_num: break
+            if termination_num is not None and sample_total >= termination_num: break
             sample_buffer.append(cur_status)
-        # print(f'total sample: {sample_total}')  
-        # print(f'iteration number: {iter_buffer}')
+            sample_no += 1
+        if need_print: print(f'total sample: {sample_total}, valid sample: {sample_no}')  
         return sample_buffer
-        
-    def get_power_flow_sample_stepwise(self, num=1, generator_v_list=None, generator_p_list=None, load_p_list=None, load_q_list=None, 
-                                       load_max=None, load_min=None, sys_no=-1, check_converge=True, check_slack=True, check_voltage=True):
-        """Power flow: get power flow samples using stepwise sampling method.
-           1. sampling load p. 
-           2. sampling generator p. 10 times.
-           3. sampling load q. 10 times.
-           4. sampling voltages. 10 times.
+    
+    # pf sampler, gen_v, ctrl_gen_p, load_p, load_q
+    def get_power_flow_sample_lhb(
+        self, 
+        num=1, 
+        generator_v_list=None, 
+        generator_p_list=None, 
+        load_p_list=None, 
+        load_q_list=None, 
+        load_max=None, 
+        load_min=None, 
+        sys_no=-1, 
+        check_converge=True, 
+        check_slack=True, 
+        check_voltage=True, 
+        seed=None,
+        termination_num=None,
+        need_print=False
+    ):
+        """Power flow: get power flow samples using the latin hypercube method.
 
         Args:
             num (int, optional): number of samples. Defaults to 1.
@@ -622,6 +662,79 @@ class Py_PSOPS:
             check_converge (bool, optional): flag shows whether checking convergence. Defaults to True.
             check_slack (bool, optional): flag shows whether checking active power generation of slack generators. Defaults to True.
             check_voltage (bool, optional): flag shows whether checking nodal voltages. Defaults to True.
+            seed (int/rng, optional): seed of lhb sampler, int or rng.
+            termination_num (int, optional): if the number of samples is too much, the sampling process will terminate. Default to None.
+            need_print (bool, optional): flag shows whether the total number of sampled pf will be printed. Defaults to False.
+
+        Returns:
+            ndarray: power flow settings.
+        """        
+        [lower_bounds, upper_bounds] = self.get_power_flow_bounds(generator_v_list, generator_p_list, load_p_list, load_q_list, load_max, load_min, sys_no)
+        sample_buffer = list()
+        iter_buffer = list()
+        if seed is None: lhb_sampler = qmc.LatinHypercube(d=lower_bounds.shape[0])
+        else: lhb_sampler = qmc.LatinHypercube(d=lower_bounds.shape[0], seed=seed)
+        n_valid_sample = 0
+        sample_total = 0
+        while (n_valid_sample < num):
+            norm_sample = lhb_sampler.random(n=num)
+            norm_sample = qmc.scale(norm_sample, lower_bounds, upper_bounds)
+            for cur_status in norm_sample:
+                # cur_status = lower_bounds + (upper_bounds - lower_bounds) * r_vector
+                sample_total += 1
+                self.set_power_flow_initiation(cur_status, generator_v_list, generator_p_list, load_p_list, load_q_list)
+                [converge, valid_slack, valid_v] = self.get_power_flow_status_check()
+                [converge, valid_slack, valid_v] = [x or y for x, y in zip([converge, valid_slack, valid_v], [not check_converge, not check_slack, not check_voltage])]
+                iter_buffer.append(self.get_info_lf_iter())
+                if False not in [converge, valid_slack, valid_v]:
+                    n_valid_sample += 1
+                    sample_buffer.append(cur_status)
+                    if n_valid_sample >= num:
+                        break
+                if termination_num is not None and sample_total >= termination_num: break
+            if termination_num is not None and sample_total >= termination_num: break
+        if need_print: print(f'total sample: {sample_total}, valid sample: {n_valid_sample}')  
+        return sample_buffer
+        
+    def get_power_flow_sample_stepwise(
+        self, 
+        num=1, 
+        generator_v_list=None, 
+        generator_p_list=None, 
+        load_p_list=None, 
+        load_q_list=None, 
+        load_max=None, 
+        load_min=None, 
+        sys_no=-1, 
+        check_converge=True, 
+        check_slack=True, 
+        check_voltage=True,
+        termination_num=None,
+        need_print=False
+    ):
+        """Power flow: get power flow samples using stepwise sampling method.
+           1. sampling load p. 
+           2. sampling generator p. 5 times.
+           3. sampling load q. 5 times.
+           4. sampling voltages. 5 times.
+
+        Args:
+            num (int, optional): number of samples. Defaults to 1.
+            generator_v_list (list, optional): list of generators with controllable v. Defaults to None.
+            generator_p_list (list, optional): list of generators with controllable p. Defaults to None.
+            load_p_list (list, optional): list of loads with controllable p. Defaults to None.
+            load_q_list (list, optional): list of loads with controllable q. Defaults to None.
+            load_max (float, optional): the load upper bound settings. Defaults to None. 
+                None means loading the default settings shown by self.__load_pq_bounds.
+                -1 means loading the current load settings.
+                Others mean loading the original load settings and multiply the given load_max.
+            load_min (float, optional): the load lower bound settings. Similar to load_max. Defaults to None.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+            check_converge (bool, optional): flag shows whether checking convergence. Defaults to True.
+            check_slack (bool, optional): flag shows whether checking active power generation of slack generators. Defaults to True.
+            check_voltage (bool, optional): flag shows whether checking nodal voltages. Defaults to True.
+            termination_num (int, optional): if the number of samples is too much, the sampling process will terminate. Default to None.
+            need_print (bool, optional): flag shows whether the total number of sampled pf will be printed. Defaults to False.
 
         Returns:
             ndarray: power flow settings.
@@ -660,7 +773,7 @@ class Py_PSOPS:
             s_pmax = s_pmin + (s_pmax - s_pmin) * self.__rng.random()
             # print('slack', s_pmin, s_pmax)
             # gen p
-            for _ in range(10):
+            for _ in range(5):
                 gen_p.fill(0.)
                 gen_order = self.__rng.choice(np.arange(len(gen_p)), len(generator_p_list), replace=False)
                 load_psum = sum(load_p)
@@ -675,10 +788,10 @@ class Py_PSOPS:
                     load_psum -= gen_p[gen_no]
                 # print('remaining', load_psum)
                 # load q
-                for _ in range(10):
+                for _ in range(5):
                     load_q = load_qmin + (load_qmax - load_qmin) * self.__rng.random(len(load_qmax))
                     # gen v
-                    for _ in range(10):
+                    for _ in range(5):
                         gen_v = gen_vmin + (gen_vmax - gen_vmin) * self.__rng.random(len(gen_vmax))
                         cur_status = np.concatenate([gen_v, gen_p, load_p, load_q])
                         self.set_power_flow_initiation(cur_status)
@@ -686,14 +799,94 @@ class Py_PSOPS:
                         sample_total += 1
                         [converge, valid_slack, valid_v] = [x or y for x, y in zip([converge, valid_slack, valid_v], [not check_converge, not check_slack, not check_voltage])]
                         if False not in [converge, valid_slack, valid_v]: break
+                        if termination_num is not None and sample_total > termination_num: break
                     if False not in [converge, valid_slack, valid_v]: break
+                    if termination_num is not None and sample_total > termination_num: break
                 if False not in [converge, valid_slack, valid_v]: break
+                if termination_num is not None and sample_total > termination_num: break
             if False not in [converge, valid_slack, valid_v]: 
                 sample_no += 1
                 sample_buffer.append(cur_status)
-        print(f'total sample: {sample_total}')  
+            if termination_num is not None and sample_total > termination_num: break
+        if need_print: tqdm.write(f'total sample: {sample_total}, valid sample: {sample_no}')  
         return sample_buffer
     
+    def get_power_flow_time_sequence(self, 
+                                     num=1, 
+                                     upper_range=5, 
+                                     generator_v_list=None, 
+                                     generator_p_list=None, 
+                                     load_p_list=None, 
+                                     load_q_list=None, 
+                                     load_max=None, 
+                                     load_min=None, 
+                                     sys_no=-1, 
+                                     check_converge=True, 
+                                     check_slack=True, 
+                                     check_voltage=True):
+        """Power flow: get power flow time series samples.
+
+        Args:
+            num (int, optional): number of samples. Defaults to 1.
+            upper_range (int, optional): Upper limit of the change rate between each time step. Defaults to 5.
+            generator_v_list (list, optional): list of generators with controllable v. Defaults to None.
+            generator_p_list (list, optional): list of generators with controllable p. Defaults to None.
+            load_p_list (list, optional): list of loads with controllable p. Defaults to None.
+            load_q_list (list, optional): list of loads with controllable q. Defaults to None.
+            load_max (float, optional): the load upper bound settings. Defaults to None. 
+                None means loading the default settings shown by self.__load_pq_bounds.
+                -1 means loading the current load settings.
+                Others mean loading the original load settings and multiply the given load_max.
+            load_min (float, optional): the load lower bound settings. Similar to load_max. Defaults to None.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+            check_converge (bool, optional): flag shows whether checking convergence. Defaults to True.
+            check_slack (bool, optional): flag shows whether checking active power generation of slack generators. Defaults to True.
+            check_voltage (bool, optional): flag shows whether checking nodal voltages. Defaults to True.
+
+        Returns:
+            ndarray: power flow settings.
+        """        
+        [lower_bounds, upper_bounds] = self.get_power_flow_bounds(generator_v_list, generator_p_list, load_p_list, load_q_list, load_max, load_min, sys_no)
+        vary_range = (upper_bounds - lower_bounds) * upper_range / 100
+        bound_size = len(lower_bounds)
+        sample_buffer = list()
+        iter_buffer = list()
+        r_vector = self.__rng.random(bound_size)
+        [converge, valid_slack, valid_v] = [False, False, False]
+        while (False in [converge, valid_slack, valid_v]):
+            r_vector = self.__rng.random(bound_size)
+            tmp_status = lower_bounds + (upper_bounds - lower_bounds) * r_vector
+            self.set_power_flow_initiation(tmp_status, generator_v_list, generator_p_list, load_p_list, load_q_list)
+            [converge, valid_slack, valid_v] = self.get_power_flow_status_check()
+            [converge, valid_slack, valid_v] = [x or y for x, y in zip([converge, valid_slack, valid_v], [not check_converge, not check_slack, not check_voltage])]
+            iter_buffer.append(self.get_info_lf_iter())
+            if False not in [converge, valid_slack, valid_v]:
+                break
+        pf_result = self.get_bus_all_lf_result()[:, 0]
+        sample_buffer.append(pf_result)
+        cur_status = tmp_status.copy()
+        sample_total = 1
+        for _ in range(num):
+            [converge, valid_slack, valid_v] = [False, False, False]
+            while (False in [converge, valid_slack, valid_v]):
+                r_vector = self.__rng.random(bound_size) - 0.5
+                tmp_status = cur_status + vary_range * r_vector
+                self.set_power_flow_initiation(tmp_status, generator_v_list, generator_p_list, load_p_list, load_q_list)
+                [converge, valid_slack, valid_v] = self.get_power_flow_status_check()
+                [converge, valid_slack, valid_v] = [x or y for x, y in zip([converge, valid_slack, valid_v], [not check_converge, not check_slack, not check_voltage])]
+                iter_buffer.append(self.get_info_lf_iter())
+                if False not in [converge, valid_slack, valid_v]:
+                    break
+            cur_status = tmp_status.copy()
+            pf_result = self.get_bus_all_lf_result()[:, 0]
+            sample_buffer.append(pf_result)
+            sample_total += 1
+            if sample_total >= num: break
+        print(f'total sample: {sample_total}')  
+        return sample_buffer
+
+    # def get
+
     def get_pf_sample_all(self, num=1, generator_v_list=None, generator_p_list=None, load_p_list=None, load_q_list=None, load_max=None, load_min=None, sys_no=-1):
         """Power flow: power Flow Sampler, return initial state and convergence iteration number.
 
@@ -1558,6 +1751,7 @@ class Py_PSOPS:
 
     def get_acline_all_ts_result(self, acline_list=None, sys_no=-1):
         """Get acline information: all the simulation results of aclines in the acline_list of asychronous system sys_no.
+           Also see self.get_acline_all_ts_cur_step_result().
 
         Args:
             acline_list (list int, optional): list of acline No. Defaults to None, which means all the aclines.
@@ -2131,8 +2325,8 @@ class Py_PSOPS:
             ndarray int: an array of slack generator No. in the generator_list.
         """        
         generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
-        all_ctrl = np.arange(self.get_generator_number(None, sys_no)[self.get_generator_all_lf_bus_type(None, sys_no) != 'slack']) if sys_no != -1 else self.__indexCtrlGen
-        return generator_list[np.where([gen in all_ctrl for gen in generator_list])]
+        all_Slack = np.arange(self.get_generator_number(None, sys_no)[self.get_generator_all_lf_bus_type(None, sys_no) == 'slack']) if sys_no != -1 else self.__indexSlack
+        return generator_list[np.where([gen in all_Slack for gen in generator_list])]
 
     def get_generator_v_set(self, generator_no: int, sys_no=-1):
         """Get generator information: the nodal voltage setting value of generator generator_no in asynchronous system sys_no.
@@ -2433,6 +2627,59 @@ class Py_PSOPS:
         for (index, generator_no) in zip(range(len(generator_list)), generator_list): self.__doubleBuffer[index] = self.get_generator_tj(generator_no, sys_no)
         return self.__doubleBuffer[:len(generator_list)].astype(np.float32)
 
+    def get_generator_ts_type_name(self, generator_no: int, sys_no=-1):
+        """Get generator information: the dynamic model type name of generator generator_no of asynchronous system sys_no.
+
+        Args:
+            generator_no (int): generator No. of asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            gbk str: the generator dynamic model name string.
+        """        
+        generator_ts_type_name = self.__psDLL.get_Generator_TS_Type(generator_no, sys_no)
+        assert generator_no is not None,  "generator ts type name is empty, please check sys/generator no!"
+        return string_at(generator_ts_type_name, -1).decode('gbk')
+
+    def get_generator_all_ts_type_name(self, generator_list=None, sys_no=-1):
+        """Get bus information: all the bus names of buses in the bus_list of asynchronous system sys_no.
+
+        Args:
+            generator_list (list int, optional): the list of generators. Defaults to None, which means all the generators.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            ndarray str: the array of generator ts type names.
+        """        
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_ts_type_names = list()
+        for generator_no in generator_list: generator_ts_type_names.append(self.get_bus_name(generator_no, sys_no))
+        return np.array(generator_ts_type_names)
+
+    def set_generator_environment_status(self, env_type: int, env_value: float, generator_no: int, sys_no=-1):
+        """Set generator information: the environmental status of generator generator_no of asynchronous system sys_no.
+
+        Args:
+            env_type (int): the type of environmental change, 1 solar, 2 temperature, 3 wind.
+            env_value (float): the environmental setting value.
+            generator_no (int): generator No. of asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+        """        
+        assert self.__psDLL.set_Generator_Environment_Status(env_type, env_value, generator_no, sys_no) == True, "Generator environmental change failed, please check!"
+    
+    def set_generator_all_environment_status(self, env_type_list: list, env_value_list: list, generator_list=None, sys_no=-1):
+        """Set generator information: all the environmental status of generators in the generator_list of asynchronous system sys_no.
+
+        Args:
+            env_type_list (list, int): the list of types of environmental changes, 1 solar, 2 temperature, 3 wind.
+            env_value_list (list, float): the list of environmental setting values.
+            generator_list (list int, optional): the list of generators. Defaults to None, which means all the generators.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+        """        
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        assert len(generator_list) == len(env_type_list) == len(env_value_list), f'Sizes do not match: generator_list ({len(generator_list)}), env_type_list ({len(env_type_list)}), and env_value_list ({len(env_value_list)})'
+        for generator_no, env_type, env_value in zip(generator_list, env_type_list, env_value_list): self.set_generator_environment_status(env_type=env_type, env_value=env_value, generator_no=generator_no, sys_no=sys_no)
+
     def get_generator_lf_result(self, generator_no: int, sys_no=-1, buffer=None, rt=True):
         """Get generator information: the power flow result of generator generator_no of asychronous system sys_no.
            [0] active power generation
@@ -2485,7 +2732,7 @@ class Py_PSOPS:
     def get_generator_ts_cur_step_result(self, generator_no: int, sys_no=-1, need_inner_e=False, buffer=None, rt=True):
         """Get generator information: simulation result of generator generator_no of asynchronous system sys_no at current step. 
            The dimensionality can be accessed by self.get_generator_ts_result_dimension().
-           [0] rotor angle, rad.
+           [0] rotor angle, Deg.
            [1] rotation speed, Hz.
            [2] nodal voltage amplitude
            [3] nodal voltage phase
@@ -2498,6 +2745,7 @@ class Py_PSOPS:
                4th-order model: [6] Eq', [7] Ed'.
                5th-order model: [6] Eq', [7] Ed'', [8] Eq''.
                6th-order model: [6] Eq', [7] Ed', [8] Ed'', [9] Eq''.
+               solar model: [6] S, [7] T, [8] Vdc, [9] Ipv.
            The funtion is usually used with self.set_info_ts_step_element_state(). Also see self.get_generator_ts_step_result().
 
         Args:
@@ -3658,7 +3906,7 @@ class Py_PSOPS:
         Args:
             dis_type (int): disturbance type, 0-tripping.
             dis_time (float): fault time. The disturbance happens at this time.
-            dis_per (float): disturbance percentage, 0-100. dis_per% of the generator is subjected to the disturbance.
+            dis_per (float): disturbance percentage, 0-1. dis_per of the generator is subjected to the disturbance.
             ele_pos (int): generator No. of the fault generator.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
@@ -3670,7 +3918,7 @@ class Py_PSOPS:
         Args:
             dis_type (int): disturbance type, 0-tripping.
             dis_time (float): fault time. The disturbance happens at this time.
-            dis_per (float): disturbance percentage, 0-100. dis_per% of the generator is subjected to the disturbance.
+            dis_per (float): disturbance percentage, 0-1. dis_per of the generator is subjected to the disturbance.
             ele_pos (int): generator No. of the fault generator.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
@@ -3682,7 +3930,7 @@ class Py_PSOPS:
         Args:
             dis_type (int): disturbance type, 0-shedding.
             dis_time (float): fault time. The disturbance happens at this time.
-            dis_per (float): disturbance percentage, 0-100. dis_per% of the load is subjected to the disturbance.
+            dis_per (float): disturbance percentage, 0-1. dis_per of the load is subjected to the disturbance.
             ele_pos (int): load No. of the fault load.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
@@ -3694,7 +3942,7 @@ class Py_PSOPS:
         Args:
             dis_type (int): disturbance type, 0-shedding.
             dis_time (float): fault time. The disturbance happens at this time.
-            dis_per (float): disturbance percentage, 0-100. dis_per% of the load is subjected to the disturbance.
+            dis_per (float): disturbance percentage, 0-1. dis_per of the load is subjected to the disturbance.
             ele_pos (int): load No. of the fault load.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        

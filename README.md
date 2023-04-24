@@ -19,8 +19,6 @@ Currently, the trained torch modules (see **referenc [2]**) are not be supported
 # Initialization
 1.  Clone / Pull the codes.
 
-2.  [Download relase files](https://github.com/xxh0523/Py_PSOPS/releases) according to the operating system and the release No., unzip the files, and put the unzipped folder with the source codes.
-
 # Directory
 ## dll_linux
 When using Py_PSOPS on Linux platform, all the .so files needed for PSOPS are here. They can be downloaded on [GitHub](https://github.com/xxh0523/Py_PSOPS/releases).
@@ -59,6 +57,14 @@ After putting all the files in place, we can debug and run Py_PSOPS normally.
     The most common mistake is setting a wrong directory of the data file.
 
     Try: Edit the **config.txt**. Change the line starting with **Dir** and set a right directory of the data file.
+
+4.  [WinError 127], The specified procedure could not be found.
+
+    This error is caused by the usage of an incorrect Qt5Core.dll.
+
+    Try: Replace the **Qt5Core.dll** in **'./dll_win'** with the **Qt5Core.dll** in **'\$conda_root\$\envs\\\$your_env\$\Library\bin'**.
+
+    If you do not know which Qt5Core.dll should be used, you can install Qt5.2.1 and run **windeploy.exe PSOPS_Source.dll** to find the right location of Qt5Core.dll. 
 
 # TODO
 1. Develop more external functions of PSOPS, e.g., changing the calculation file location, changing the node ordering method, changing the sparse vector method, etc.
