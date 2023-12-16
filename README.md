@@ -10,11 +10,17 @@ The cpp PSOPS is compiled as a library file. The Python ctypes library is used t
 Currently, the trained torch modules (see **referenc [2]**) are not be supported when using library files PSOPS_Source.dll or PSOPS.so.1.0.0. The neural modules can only be supported in excution files PSOPS_Source.exe or PSOPS_Source. If you want the excution files PSOPS_Source.exe or PSOPS_Source, please contact us (eexiaoxh@gmail.com). Also, see https://github.com/xxh0523/Py_PSNODE for more details.
 
 # Environment
--[Windows 7, 8, 10]
 
--[Linux]
+- **Windows: 7, 8, 10, 11**
 
--[Python 3.6, 3.7, 3.8]
+- **Linux: Ubuntu 18.04, Ubuntu 20.04**
+
+- **Python 3.6, 3.7, 3.8, 3.9, 3.10**
+
+- NOTE: If encounter with **FileNotFoundError** for `ctypes.cdll.LoadLibrary()`, install **qtwebkit**. The conda command is as follows.
+```
+conda install qtwebkit
+```
 
 # Initialization
 1.  Clone / Pull the codes.
@@ -42,13 +48,17 @@ An exmple of using Py_PSOPS to generate simulation samples.
 After putting all the files in place, we can debug and run Py_PSOPS normally.
 
 ## Q&A
+1.  **FileNotFoundError** for `ctypes.cdll.LoadLibrary()` 
+
+    Try: install **qtwebkit**, e.g., `conda install qtwebkit`. Change command accordingly. 
+
 1.  OSError: libQt5Core.so.5: cannot open shared object file: No such file or directory
 
-    Try： `sudo apt install libqt5core5a`，change command according to the Operating System.
+    Try: `sudo apt install libqt5core5a`. Change command accordingly.
 
 2.  OSError: libomp.so.5: cannot open shared object file: No such file or directory
 
-    Try: `sudo apt install libomp5`， change command according to the Operating System.
+    Try: `sudo apt install libomp5`. Change command accordingly.
 
 3.  AssertionError: read settings failure!
 
