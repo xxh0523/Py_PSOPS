@@ -18,6 +18,7 @@ Currently, the trained torch modules (see **referenc [2]**) are not be supported
 - **Python 3.6, 3.7, 3.8, 3.9, 3.10**
 
 - NOTE: If encounter with **FileNotFoundError** for `ctypes.cdll.LoadLibrary()`, install **qtwebkit**. The conda command is as follows.
+
 ```
 conda install qtwebkit
 ```
@@ -82,10 +83,12 @@ After putting all the files in place, we can debug and run Py_PSOPS normally.
 2. Manage MPI supportability of the Python API. 
 
 3. We will publish other applications such as neural ODE and reinforcement learning in the close future.
-# References
-[1] **T. Xiao**, Y. Chen*, J. Wang, S. Huang, W. Tong, and T. He, “Exploration of AI-Oriented Power System Transient Stability Simulations,” [arxiv](http://arxiv.org/abs/2110.00931).
 
-[2] **T. Xiao**, Y. Chen*, T. He, and H. Guan, “Neural ODE and DAE Modules for Power System Dynamic Component Modeling,” [arxiv](https://arxiv.org/abs/2110.12981).
+# References
+[1] **T. Xiao**, Y. Chen*, J. Wang, S. Huang, W. Tong, and T. He, “Exploration of AI-Oriented Power System Transient Stability Simulations,” *Journal of Modern Power Systems and Clean Energy*, vol. 11, no. 2, pp. 401–411, Mar. 2023, doi: [10.35833/MPCE.2022.000099](https://ieeexplore.ieee.org/document/9833418), [arxiv](http://arxiv.org/abs/2110.00931).
+
+
+[2] **T. Xiao**, Y. Chen*, T. He, and H. Guan, “Feasibility Study of Neural ODE and DAE Modules for Power System Dynamic Component Modeling,” *IEEE Transactions on Power Systems*, vol. 38, no. 3, pp. 2666–2678, May 2023, doi: [10.1109/TPWRS.2022.3194570](https://ieeexplore.ieee.org/document/9844253), [arxiv](https://arxiv.org/abs/2110.12981).
 
 [3] **T. Xiao**, W. Tong, and J. Wang*, “A New Fully Parallel BBDF Method in Transient Stability Simulations,” *IEEE Trans. Power Syst.*, vol. 35, no. 1, pp. 304–314, Jan. 2020, doi: [10.1109/TPWRS.2019.2933637](https://ieeexplore.ieee.org/document/8798601/).
 
