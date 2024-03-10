@@ -7,6 +7,7 @@ import numpy as np
 from multiprocessing.pool import Pool
 import ray
 import time
+import argparse
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -19,6 +20,23 @@ def grid_sampler_for_st_gcn():
     
 if __name__ == '__main__':
     ct = -time.time()
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--seed', type=int,
+                        help='Set random seed. Default value is 42.',
+                        required=False, default=42)
+    parser.add_argument('--num', type=int,
+                        help='Sample num per worker. Default value is 100.',
+                        required=False, default=100)
+    parser.add_argument('--worker', type=int,
+                        help='num of workers. Default value is 1.',
+                        required=False, default=1)
+    args = parser.parse_args()
+
+    # sampler = SampleGenerator(0, args.worker, args.seed)
+    # sampler.ts_sampler_basic(result_path="/data/xiaotannan/ts_data_ieee39", total_num=args.num, cut_length=101)
+    workers = [RayWorkerForSampleGenerator.remote(worker_no, args.worker, args.seed) for worker_no in range(args.worker)]
+    ray.get([worker.ts_sampler_basic.remote(result_path="/data/xiaotannan/ts_data_ieee39", total_num=args.num, cut_length=101) for worker in workers])
 
     # worker = SampleGenerator(4242, 1)
 

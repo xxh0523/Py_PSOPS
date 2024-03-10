@@ -1,7 +1,7 @@
 ####################################################################################################
 # The project Py_PSOPS is the python API for a Power System Electromechanical Simulator called PSOPS.
 # PSOPS stands for Power System Optimal Power Parameter Selection.
-# The related paper' preprint can be found on arxiv, http://arxiv.org/abs/2110.00931.
+# The related paper' preprint can be found on arxiv, https://ieeexplore.ieee.org/document/9833418.
 # All the techniques used in PSOPS have been published, references' DOIs are as follows
 # [1] https://ieeexplore.ieee.org/document/8798601/.
 # [2] https://ieeexplore.ieee.org/document/8765766/.
@@ -22,7 +22,7 @@ parent_dir, _ = os.path.split(os.path.abspath(__file__))
 
 array_1d_double = np.ctypeslib.ndpointer(
     dtype=np.double, ndim=1, flags='CONTIGUOUS')
-array_1d_int = np.ctypeslib.ndpointer(dtype=np.int, ndim=1, flags='CONTIGUOUS')
+array_1d_int = np.ctypeslib.ndpointer(dtype=np.int32, ndim=1, flags='CONTIGUOUS')
 
 if platform.system() == 'Windows':
     os.environ['path'] += ';%s\\dll_win' % parent_dir
@@ -180,6 +180,18 @@ class Py_PSOPS:
         self.__psDLL.get_ACLine_Sys_No.restype = c_int
         self.__psDLL.get_ACLine_No.argtypes = [c_int, c_int]
         self.__psDLL.get_ACLine_No.restype = c_long
+        self.__psDLL.get_ACLine_Conductance.argtypes = [c_int, c_int]
+        self.__psDLL.get_ACLine_Conductance.restype = c_double
+        self.__psDLL.set_ACLine_Conductance.argtypes = [c_double, c_int, c_int]
+        self.__psDLL.set_ACLine_Conductance.restype = c_bool
+        self.__psDLL.get_ACLine_Susceptance.argtypes = [c_int, c_int]
+        self.__psDLL.get_ACLine_Susceptance.restype = c_double
+        self.__psDLL.set_ACLine_Susceptance.argtypes = [c_double, c_int, c_int]
+        self.__psDLL.set_ACLine_Susceptance.restype = c_bool
+        self.__psDLL.get_ACLine_Gnd_Susceptance.argtypes = [c_int, c_int]
+        self.__psDLL.get_ACLine_Gnd_Susceptance.restype = c_double
+        self.__psDLL.set_ACLine_Gnd_Susceptance.argtypes = [c_double, c_int, c_int]
+        self.__psDLL.set_ACLine_Gnd_Susceptance.restype = c_bool
         self.__psDLL.get_ACLine_Current_Capacity.argtypes = [c_int, c_int]
         self.__psDLL.get_ACLine_Current_Capacity.restype = c_double
         self.__psDLL.get_ACLine_LF_Result.argtypes = [array_1d_double, c_int, c_int]
@@ -199,6 +211,22 @@ class Py_PSOPS:
         self.__psDLL.get_Transformer_Sys_No.restype = c_int
         self.__psDLL.get_Transformer_No.argtypes = [c_int, c_int]
         self.__psDLL.get_Transformer_No.restype = c_long
+        self.__psDLL.get_Transformer_Conductance.argtypes = [c_int, c_int]
+        self.__psDLL.get_Transformer_Conductance.restype = c_double
+        self.__psDLL.set_Transformer_Conductance.argtypes = [c_double, c_int, c_int]
+        self.__psDLL.set_Transformer_Conductance.restype = c_bool
+        self.__psDLL.get_Transformer_Susceptance.argtypes = [c_int, c_int]
+        self.__psDLL.get_Transformer_Susceptance.restype = c_double
+        self.__psDLL.set_Transformer_Susceptance.argtypes = [c_double, c_int, c_int]
+        self.__psDLL.set_Transformer_Susceptance.restype = c_bool
+        self.__psDLL.get_Transformer_ITap.argtypes = [c_int, c_int]
+        self.__psDLL.get_Transformer_ITap.restype = c_double
+        self.__psDLL.set_Transformer_ITap.argtypes = [c_double, c_int, c_int]
+        self.__psDLL.set_Transformer_ITap.restype = c_bool
+        self.__psDLL.get_Transformer_JTap.argtypes = [c_int, c_int]
+        self.__psDLL.get_Transformer_JTap.restype = c_double
+        self.__psDLL.set_Transformer_JTap.argtypes = [c_double, c_int, c_int]
+        self.__psDLL.set_Transformer_JTap.restype = c_bool
         self.__psDLL.get_Transformer_Current_Capacity.argtypes = [c_int, c_int]
         self.__psDLL.get_Transformer_Current_Capacity.restype = c_double
         self.__psDLL.get_Transformer_LF_Result.argtypes = [array_1d_double, c_int, c_int]
@@ -386,10 +414,10 @@ class Py_PSOPS:
         """Create buffers for loading data from PSOPS.
         """        
         self.__bufferSize = max(
-            self.__nBus * 6 * 2000, max(self.__nNonzero, self.__nInverseNonZero) * 6)
+            self.__nBus * 6 * (self.get_info_ts_max_step() + 500), max(self.__nNonzero, self.__nInverseNonZero + 100) * 6)
         self.__doubleBuffer = np.zeros(self.__bufferSize, np.float64)
-        self.__intBuffer = np.zeros(self.__bufferSize, np.int)
-        self.__boolBuffer = np.zeros(self.__bufferSize, np.bool)
+        self.__intBuffer = np.zeros(self.__bufferSize, np.int32)
+        self.__boolBuffer = np.zeros(self.__bufferSize, bool)
         print("Buffer Created in Python.")
         # run buffer tests
         # self._buffer_tests()
@@ -399,8 +427,8 @@ class Py_PSOPS:
         """        
         # gen lf bus type
         bus_type = self.get_generator_all_lf_bus_type()
-        self.__indexSlack = np.arange(self.__nGenerator, dtype=np.int)[bus_type == 'slack']
-        self.__indexCtrlGen = np.arange(self.__nGenerator, dtype=np.int)[bus_type != 'slack']
+        self.__indexSlack = np.arange(self.__nGenerator, dtype=np.int32)[bus_type == 'slack']
+        self.__indexCtrlGen = np.arange(self.__nGenerator, dtype=np.int32)[bus_type != 'slack']
         # gen v set
         self.__generator_v_origin = self.get_generator_all_v_set()
         # gen p set
@@ -922,7 +950,11 @@ class Py_PSOPS:
     ################################################################################################
     # Transient Stability
     ################################################################################################
-    def cal_transient_stability_simulation_ti_sv(self, start_time=0.0, contingency_no=0):
+    def cal_transient_stability_simulation_ti_sv(
+            self, 
+            start_time=0.0, 
+            contingency_no=0
+    ):
         """Transient stability simulation using the implicit trapezoidal method and sparse vector method. 
 
         Args:
@@ -938,24 +970,104 @@ class Py_PSOPS:
     
     # TODO api for other integration method and sparse vector method.
 
-    def get_transient_stability_check_stability(self, maximum_delta=180.):
+    def get_transient_stability_check_stability(
+            self, 
+            maximum_delta=180.,
+            vol_length=100,
+            maximum_freq=51,
+            minimum_freq=49.
+    ):
         """Transient stability: check stability of the simulation.
 
         Args:
-            maximum_delta (float, optional): the acceptable maximum rotor angle. Defaults to 180..
+            maximum_delta (float, optional): the acceptable maximum rotor angle. Defaults to 180.
+            vol_length (int, optional): the acceptable maximum length that voltage is lower that 0.7. Defaults to 100.
+            maximum_freq (float, optional): the acceptable maximum frequency. Defaults to 51.
+            minimum_freq (float, optional): the acceptable minimum frequency. Defaults to 49.
 
         Returns:
-            bool: flag shows whether the simulation is stable.
+            label: stability label shows whether the simulation is stable. 0(stable), 1(rotor), 2(voltage), 3(frequency)
         """        
+        fin_step = self.get_info_ts_finish_step()
         std_result = self.get_acsystem_all_ts_result()[0]
-        if std_result[:, 1].max() < maximum_delta:
-            fin_step = self.get_info_ts_finish_step()
-            if fin_step + 1 != self.get_info_ts_max_step():
-                print(fin_step, std_result[:, 1].max())
-                # raise Exception("stable and early finish, please check!")
-            return True
-        else:
-            return False
+        if np.any(std_result != std_result): return -1
+        delta_diff = std_result[:fin_step, 1]
+        min_vol = std_result[:fin_step, 4]
+        min_freq = std_result[:fin_step, 2]
+        max_freq = std_result[:fin_step, 3]
+        label = 0
+        vol_count = 0
+        for step in range(fin_step):
+            if delta_diff[step] > maximum_delta: 
+                label = 1
+                break
+            if min_vol[step] < 0.7: vol_count += 1
+            else: vol_count = 0
+            if vol_count > vol_length: 
+                label = 2
+                break
+            if min_freq[step] < minimum_freq or max_freq[step] > maximum_freq:
+                label = 3
+                break
+        return label
+        
+    def get_transient_stability_all_relevant_data(
+            self,
+    ):    
+        """Transient stability: get all relevent data. You can customize your own data frame based on this function.
+
+        Returns:
+            bool: flag shows whether the data is valid
+            list: list of removed lines in start topology
+            list: list of ts system results
+            list: list of ts rotor angle results
+            list: list of ts bus voltage results
+            list: list of ts transmission line power results
+            list: list of admittance matrix before, during, and after fault
+            list: list of impedance matrix before, during, and after fault
+            list: list of factorized impedance matrix before, during, and after fault
+        """        
+        # start topology: original, N-1, and N-2
+        connectivity = self.get_network_acline_all_connectivity()
+        if np.where(connectivity == False)[0].shape[0] == 0: start_topo = None
+        else: start_topo = [[line_no] + self.get_acline_info(line_no) for line_no in np.where(connectivity == False)[0]]
+
+        # system state
+        result_all = self.get_acsystem_all_ts_result()[0]
+        if np.any(result_all != result_all): return False, None, None, None, None, None, None, None, None
+
+        # all gen rotor angle
+        result_ang = self.get_generator_all_ts_result()
+        if np.any(result_ang != result_ang): return False, None, None, None, None, None, None, None, None
+        
+        # all voltage
+        result_vol = self.get_bus_all_ts_result()
+        if np.any(result_vol != result_vol): return False, None, None, None, None, None, None, None, None
+
+        # all acline power
+        result_tran = self.get_acline_all_ts_result()
+        if np.any(result_tran != result_tran): return False, None, None, None, None, None, None, None, None
+
+        # TODO: fault info
+
+        # topology information: admittance, impedance, factorized impedance
+        adm_list = list()
+        imp_list = list()
+        fac_imp_list = list()
+        # before fault
+        adm_list.append(self.get_network_admittance_matrix_full(0))
+        imp_list.append(self.get_network_impedance_matrix_full(0))
+        fac_imp_list.append(self.get_network_impedance_matrix_factorized(0))
+        # during fault
+        adm_list.append(self.get_network_admittance_matrix_full(1))
+        imp_list.append(self.get_network_impedance_matrix_full(1))
+        fac_imp_list.append(self.get_network_impedance_matrix_factorized(1))
+        # after fault
+        adm_list.append(self.get_network_admittance_matrix_full(30))
+        imp_list.append(self.get_network_impedance_matrix_full(30))
+        fac_imp_list.append(self.get_network_impedance_matrix_factorized(30))
+
+        return True, start_topo, result_all, result_ang, result_vol, result_tran, np.array(adm_list), np.array(imp_list), fac_imp_list
 
     ################################################################################################
     # calculation information and calculation control
@@ -1146,6 +1258,7 @@ class Py_PSOPS:
         self.get_info_ts_finish_step()
         assert self.__cur_total_step >= 0, 'transient simulation not done yet!'
         total_step = self.__cur_total_step + 1
+        if total_step > self.get_info_ts_max_step(): print(f'max step exceed: {total_step}!!!!!!!!!!!!!!!!!!!!')
         assert self.__psDLL.get_ACSystem_TS_All_Result(self.__doubleBuffer, sys_no), "get ts all system variable results failed!"
         n_system = self.__nACSystem if sys_no == -1 else 1
         return self.__doubleBuffer[0:n_system * total_step * 6].reshape(n_system, total_step, 6).astype(np.float32)
@@ -1192,7 +1305,7 @@ class Py_PSOPS:
         Returns:
             ndarray str: the array of bus names.
         """        
-        bus_list = np.arange(self.get_bus_number(sys_no), dtype=np.int) if bus_list is None else bus_list
+        bus_list = np.arange(self.get_bus_number(sys_no), dtype=np.int32) if bus_list is None else bus_list
         if sys_no == -1: return self.__allBusName[bus_list]
         bus_names = list()
         for bus_no in bus_list: bus_names.append(self.get_bus_name(bus_no, sys_no))
@@ -1233,7 +1346,7 @@ class Py_PSOPS:
         Returns:
             ndarray int: an array of the asynchronous system No.
         """        
-        bus_list = np.arange(self.__nBus, dtype=np.int) if bus_list is None else bus_list
+        bus_list = np.arange(self.__nBus, dtype=np.int32) if bus_list is None else bus_list
         for (index, bus_no) in zip(range(len(bus_list)), bus_list):
             self.__intBuffer[index] = self.get_bus_sys_no(bus_no)
         return self.__intBuffer[:len(bus_list)].astype(np.int32)
@@ -1262,7 +1375,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of the upper bounds of buses.
         """        
-        bus_list = np.arange(self.get_bus_number(sys_no), dtype=np.int) if bus_list is None else bus_list
+        bus_list = np.arange(self.get_bus_number(sys_no), dtype=np.int32) if bus_list is None else bus_list
         for (index, bus_no) in zip(range(len(bus_list)), bus_list):
             self.__doubleBuffer[index] = self.get_bus_vmax(bus_no, sys_no)
         return self.__doubleBuffer[:len(bus_list)].astype(np.float32)
@@ -1291,7 +1404,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of the lower bounds of buses.
         """        
-        bus_list = np.arange(self.get_bus_number(sys_no), dtype=np.int) if bus_list is None else bus_list
+        bus_list = np.arange(self.get_bus_number(sys_no), dtype=np.int32) if bus_list is None else bus_list
         for (index, bus_no) in zip(range(len(bus_list)), bus_list):
             self.__doubleBuffer[index] = self.get_bus_vmin(bus_no, sys_no)
         return self.__doubleBuffer[:len(bus_list)].astype(np.float32)
@@ -1331,7 +1444,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of all the power flow results of buses. Array shape is (len(bus_list), 6). 
         """        
-        bus_list = np.arange(self.get_bus_number(sys_no), dtype=np.int) if bus_list is None else bus_list
+        bus_list = np.arange(self.get_bus_number(sys_no), dtype=np.int32) if bus_list is None else bus_list
         for (index, bus_no) in zip(range(len(bus_list)), bus_list):
             self.get_bus_lf_result(bus_no, sys_no, self.__doubleBuffer[index*6:], False)
         return self.__doubleBuffer[:len(bus_list)*6].reshape(len(bus_list), 6).astype(np.float32)
@@ -1371,7 +1484,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of buses simulation results. Array shape is (len(bus_list), 6).
         """        
-        bus_list = np.arange(self.get_bus_number(sys_no), dtype=np.int) if bus_list is None else bus_list
+        bus_list = np.arange(self.get_bus_number(sys_no), dtype=np.int32) if bus_list is None else bus_list
         for (index, bus_no) in zip(range(len(bus_list)), bus_list):
             self.get_bus_ts_cur_step_result(bus_no, sys_no, self.__doubleBuffer[index*6:], False)
         return self.__doubleBuffer[:len(bus_list)*6].reshape(len(bus_list), 6).astype(np.float32)
@@ -1416,7 +1529,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of buses simulation results. Array shape is (total_step, len(bus_list), 6).
         """      
-        bus_list = np.arange(self.get_bus_number(sys_no), dtype=np.int) if bus_list is None else bus_list
+        bus_list = np.arange(self.get_bus_number(sys_no), dtype=np.int32) if bus_list is None else bus_list
         self.get_info_ts_finish_step()
         assert self.__cur_total_step >= 0, 'transient simulation not done yet!'
         total_step = self.__cur_total_step + 1
@@ -1466,7 +1579,7 @@ class Py_PSOPS:
         Returns:
             ndarray int32: an array of bus No. of bus i.
         """        
-        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int) if acline_list is None else acline_list
+        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int32) if acline_list is None else acline_list
         for (index, acline_no) in zip(range(len(acline_list)), acline_list):
             self.__intBuffer[index] = self.get_acline_i_no(acline_no, sys_no)
         return self.__intBuffer[:len(acline_list)].astype(np.int32)
@@ -1496,7 +1609,7 @@ class Py_PSOPS:
         Returns:
             ndarray int32: an array of bus No. of bus j.
         """        
-        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int) if acline_list is None else acline_list
+        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int32) if acline_list is None else acline_list
         for (index, acline_no) in zip(range(len(acline_list)), acline_list):
             self.__intBuffer[index] = self.get_acline_j_no(acline_no, sys_no)
         return self.__intBuffer[:len(acline_list)].astype(np.int32)
@@ -1524,7 +1637,7 @@ class Py_PSOPS:
         Returns:
             ndarray, str: an array of bus names of bus i.
         """        
-        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int) if acline_list is None else acline_list
+        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int32) if acline_list is None else acline_list
         return self.get_bus_all_name(None, sys_no)[self.get_acline_all_i_no(acline_list)]
 
     def get_acline_j_name(self, acline_no: int, sys_no=-1):
@@ -1550,7 +1663,7 @@ class Py_PSOPS:
         Returns:
             ndarray, str: an array of bus names of bus j.
         """        
-        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int) if acline_list is None else acline_list
+        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int32) if acline_list is None else acline_list
         return self.get_bus_all_name(None, sys_no)[self.get_acline_all_j_no(acline_list)]
 
     def get_acline_sys_no(self, acline_no: int):
@@ -1576,7 +1689,7 @@ class Py_PSOPS:
         Returns:
             ndarray int: an array of asynchronous system No. 
         """        
-        acline_list = np.arange(self.get_acline_number(), dtype=np.int) if acline_list is None else acline_list
+        acline_list = np.arange(self.get_acline_number(), dtype=np.int32) if acline_list is None else acline_list
         for (index, acline_no) in zip(range(len(acline_list)), acline_list):
             self.__intBuffer[index] = self.get_acline_sys_no(acline_no)
         return self.__intBuffer[:len(acline_list)].astype(np.int32)
@@ -1607,10 +1720,231 @@ class Py_PSOPS:
         Returns:
             ndarray: an array of internal No. of aclines.
         """        
-        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int) if acline_list is None else acline_list
+        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int32) if acline_list is None else acline_list
         for (index, acline_no) in zip(range(len(acline_list)), acline_list):
             self.__intBuffer[index] = self.get_acline_NO(acline_no, sys_no)
         return self.__intBuffer[:len(acline_list)]
+
+    def get_acline_conductance(self, acline_no: int, sys_no=-1):
+        """Get acline conductance: the conductance of acline acline_no of asynchronous system sys_no.
+           This value is determined in the original computation datafile.
+
+        Args:
+            acline_no (int): acline No. in asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            double: the conductance of acline.
+        """        
+        a_conductance = self.__psDLL.get_ACLine_Conductance(acline_no, sys_no)
+        assert a_conductance >= -1.0e19, "acline No is wrong, please check!"
+        return a_conductance
+
+    def get_acline_all_conductance(self, acline_list=None, sys_no=-1):
+        """Get acline conductance: all the conductance of aclines in acline_list of asynchronous system sys_no.
+           Also see self.get_acline_conductance().
+
+        Args:
+            acline_list (list int, optional): list of acline No. Defaults to None, which means all the aclines.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            ndarray: an array of conductance of aclines.
+        """        
+        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int32) if acline_list is None else acline_list
+        for (index, acline_no) in zip(range(len(acline_list)), acline_list):
+            self.__doubleBuffer[index] = self.get_acline_conductance(acline_no, sys_no)
+        return self.__doubleBuffer[:len(acline_list)]
+
+    def set_acline_conductance(self, conductance: float, acline_no: int, sys_no=-1):
+        """Set acline conductance: the conductance of acline acline_no in asynchronous system sys_no.
+
+        Args:
+            conductance (float): conductance. 
+            acline_no (int): acline No. of asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+        """        
+        assert self.__psDLL.set_ACLine_Conductance(conductance, acline_no, sys_no), "set acline conductance wrong, please check!"
+
+    def set_acline_all_conductance(self, conductances: np.ndarray, acline_list=None, sys_no=-1):
+        """Set acline conductance: all the conductance of aclines in acline_list in asynchronous system sys_no.
+
+        Args:
+            conductances (np.ndarray): an array of conductances. 
+            acline_list (list int, optional): list of acline No. Defaults to None, which means all the aclines.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+        """        
+        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int32) if acline_list is None else acline_list
+        assert len(acline_list) == len(conductances), "conductances length does not match, please cleck"
+        for (conductance, acline_no) in zip(conductances, acline_list): self.set_acline_conductance(conductance, acline_no, sys_no)
+    
+    def get_acline_susceptance(self, acline_no: int, sys_no=-1):
+        """Get acline susceptance: the susceptance of acline acline_no of asynchronous system sys_no.
+           This value is determined in the original computation datafile.
+
+        Args:
+            acline_no (int): acline No. in asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            double: the susceptance of acline.
+        """        
+        a_susceptance = self.__psDLL.get_ACLine_Susceptance(acline_no, sys_no)
+        assert a_susceptance >= -1.0e19, "acline No is wrong, please check!"
+        return a_susceptance
+
+    def get_acline_all_susceptance(self, acline_list=None, sys_no=-1):
+        """Get acline susceptance: all the susceptance of aclines in acline_list of asynchronous system sys_no.
+           Also see self.get_acline_susceptance().
+
+        Args:
+            acline_list (list int, optional): list of acline No. Defaults to None, which means all the aclines.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            ndarray: an array of susceptance of aclines.
+        """        
+        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int32) if acline_list is None else acline_list
+        for (index, acline_no) in zip(range(len(acline_list)), acline_list):
+            self.__doubleBuffer[index] = self.get_acline_susceptance(acline_no, sys_no)
+        return self.__doubleBuffer[:len(acline_list)]
+
+    def set_acline_susceptance(self, susceptance: float, acline_no: int, sys_no=-1):
+        """Set acline susceptance: the susceptance of acline acline_no in asynchronous system sys_no.
+
+        Args:
+            susceptance (float): susceptance. 
+            acline_no (int): acline No. of asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+        """        
+        assert self.__psDLL.set_ACLine_Susceptance(susceptance, acline_no, sys_no), "set acline susceptance wrong, please check!"
+
+    def set_acline_all_susceptance(self, susceptances: np.ndarray, acline_list=None, sys_no=-1):
+        """Set acline susceptance: all the susceptance of aclines in acline_list in asynchronous system sys_no.
+
+        Args:
+            susceptances (np.ndarray): an array of susceptances. 
+            acline_list (list int, optional): list of acline No. Defaults to None, which means all the aclines.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+        """        
+        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int32) if acline_list is None else acline_list
+        assert len(acline_list) == len(susceptances), "susceptances length does not match, please cleck"
+        for (susceptance, acline_no) in zip(susceptances, acline_list): self.set_acline_conductance(susceptance, acline_no, sys_no)
+
+    def get_acline_ground_susceptance(self, acline_no: int, sys_no=-1):
+        """Get acline ground susceptance: the ground susceptance of acline acline_no of asynchronous system sys_no.
+           This value is determined in the original computation datafile.
+
+        Args:
+            acline_no (int): acline No. in asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            double: the ground susceptance of acline.
+        """        
+        a_gnd_susceptance = self.__psDLL.get_ACLine_Gnd_Susceptance(acline_no, sys_no)
+        assert a_gnd_susceptance >= -1.0e19, "acline No is wrong, please check!"
+        return a_gnd_susceptance
+
+    def get_acline_all_ground_susceptance(self, acline_list=None, sys_no=-1):
+        """Get acline ground susceptance: all the ground susceptance of aclines in acline_list of asynchronous system sys_no.
+           Also see self.get_acline_ground_susceptance().
+
+        Args:
+            acline_list (list int, optional): list of acline No. Defaults to None, which means all the aclines.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            ndarray: an array of ground susceptance of aclines.
+        """        
+        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int32) if acline_list is None else acline_list
+        for (index, acline_no) in zip(range(len(acline_list)), acline_list):
+            self.__doubleBuffer[index] = self.get_acline_ground_susceptance(acline_no, sys_no)
+        return self.__doubleBuffer[:len(acline_list)]
+
+    def set_acline_ground_susceptance(self, gnd_susceptance: float, acline_no: int, sys_no=-1):
+        """Set acline ground susceptance: the ground susceptance of acline acline_no in asynchronous system sys_no.
+
+        Args:
+            ground susceptance (float): ground susceptance. 
+            acline_no (int): acline No. of asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+        """        
+        assert self.__psDLL.set_ACLine_Gnd_Susceptance(gnd_susceptance, acline_no, sys_no), "set acline ground susceptance wrong, please check!"
+
+    def set_acline_all_ground_susceptance(self, gnd_susceptances: np.ndarray, acline_list=None, sys_no=-1):
+        """Set acline ground susceptance: all the ground susceptance of aclines in acline_list in asynchronous system sys_no.
+
+        Args:
+            ground susceptances (np.ndarray): an array of ground susceptances. 
+            acline_list (list int, optional): list of acline No. Defaults to None, which means all the aclines.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+        """        
+        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int32) if acline_list is None else acline_list
+        assert len(acline_list) == len(gnd_susceptances), "ground susceptances length does not match, please cleck"
+        for (gnd_susceptance, acline_no) in zip(gnd_susceptances, acline_list): self.set_acline_conductance(gnd_susceptance, acline_no, sys_no)
+
+    def get_acline_resistance(self, acline_no: int, sys_no=-1):
+        """Get acline resistance: the resistance of acline acline_no of asynchronous system sys_no.
+           This value is determined in the original computation datafile.
+
+        Args:
+            acline_no (int): acline No. in asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            double: the resistance of acline.
+        """        
+        g = self.get_acline_conductance(acline_no, sys_no)
+        b = self.get_acline_susceptance(acline_no, sys_no)
+        return g / (g * g + b * b)
+
+    def get_acline_all_resistance(self, acline_list=None, sys_no=-1):
+        """Get acline resistance: all the resistance of aclines in acline_list of asynchronous system sys_no.
+           Also see self.get_acline_resistance().
+
+        Args:
+            acline_list (list int, optional): list of acline No. Defaults to None, which means all the aclines.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            ndarray: an array of internal No. of aclines.
+        """        
+        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int32) if acline_list is None else acline_list
+        for (index, acline_no) in zip(range(len(acline_list)), acline_list):
+            self.__doubleBuffer[index] = self.get_acline_resistance(acline_no, sys_no)
+        return self.__doubleBuffer[:len(acline_list)]
+    
+    def get_acline_reactance(self, acline_no: int, sys_no=-1):
+        """Get acline reactance: the reactance of acline acline_no of asynchronous system sys_no.
+           This value is determined in the original computation datafile.
+
+        Args:
+            acline_no (int): acline No. in asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            double: the reactance of acline.
+        """        
+        g = self.get_acline_conductance(acline_no, sys_no)
+        b = self.get_acline_susceptance(acline_no, sys_no)
+        return -b / (g * g + b * b)
+
+    def get_acline_all_reactance(self, acline_list=None, sys_no=-1):
+        """Get acline reactance: all the reactance of aclines in acline_list of asynchronous system sys_no.
+           Also see self.get_acline_reactance().
+
+        Args:
+            acline_list (list int, optional): list of acline No. Defaults to None, which means all the aclines.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            ndarray: an array of reactance of aclines.
+        """        
+        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int32) if acline_list is None else acline_list
+        for (index, acline_no) in zip(range(len(acline_list)), acline_list):
+            self.__doubleBuffer[index] = self.get_acline_reactance(acline_no, sys_no)
+        return self.__doubleBuffer[:len(acline_list)]
 
     def get_acline_current_capacity(self, acline_no: int, sys_no=-1):
         """Get acline information: the line current capacity of acline acline_no of asynchronous system sys_no.
@@ -1639,7 +1973,7 @@ class Py_PSOPS:
         Returns:
             ndarray, float64: an array of current capacities of aclines.
         """        
-        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int) if acline_list is None else acline_list
+        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int32) if acline_list is None else acline_list
         for (index, acline_no) in zip(range(len(acline_list)), acline_list):
             self.__doubleBuffer[index] = self.get_acline_current_capacity(acline_no, sys_no)
         return self.__doubleBuffer[:len(acline_list)].astype(np.float32)
@@ -1676,7 +2010,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of all acline power flow results. Array shape is (len(acline_list), 4).
         """
-        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int) if acline_list is None else acline_list
+        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int32) if acline_list is None else acline_list
         for (index, acline_no) in zip(range(len(acline_list)), acline_list):
             self.get_acline_lf_result(acline_no, sys_no, self.__doubleBuffer[index*4:], False)
         return self.__doubleBuffer[:len(acline_list)*4].reshape(len(acline_list), 4).astype(np.float32)
@@ -1714,7 +2048,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of aclines simulation results. Array shape is (len(acline_list), 4).
         """        
-        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int) if acline_list is None else acline_list
+        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int32) if acline_list is None else acline_list
         for (index, acline_no) in zip(range(len(acline_list)), acline_list):
             self.get_acline_ts_cur_step_result(acline_no, sys_no, self.__doubleBuffer[index*4:], False)
         return self.__doubleBuffer[:len(acline_list)*4].reshape(len(acline_list), 4).astype(np.float32)
@@ -1760,7 +2094,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of aclines simulation results. Array shape is (total_step, len(acline_list), 4).
         """        
-        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int) if acline_list is None else acline_list
+        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int32) if acline_list is None else acline_list
         self.get_info_ts_finish_step()
         assert self.__cur_total_step >= 0, 'transient simulation not done yet!'
         total_step = self.__cur_total_step + 1
@@ -1778,7 +2112,9 @@ class Py_PSOPS:
         Returns:
             list: a list of acline information, [bus i name, bus j name, internal No.].
         """        
-        return [self.get_acline_i_name(acline_no, sys_no), self.get_acline_j_name(acline_no, sys_no), self.get_acline_NO(acline_no, sys_no)]
+        return [[self.get_acline_i_name(acline_no, sys_no), self.get_acline_j_name(acline_no, sys_no)], 
+                [self.get_acline_i_no(acline_no, sys_no), self.get_acline_j_no(acline_no, sys_no)], 
+                self.get_acline_NO(acline_no, sys_no)]
     
     def get_acline_all_info(self, acline_list=None, sys_no=-1):
         """Get acline information: all acline name information of aclines in acline_list of asychronous system sys_no.
@@ -1790,7 +2126,7 @@ class Py_PSOPS:
         Returns:
             list: a list of aclines information, [[bus i names], [bus j names], [internal No.]]
         """        
-        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int) if acline_list is None else acline_list
+        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int32) if acline_list is None else acline_list
         return [self.get_acline_all_i_name(acline_list, sys_no), self.get_acline_all_j_name(acline_list, sys_no), self.get_acline_all_NO(acline_list, sys_no)]
 
     ################################################################################################
@@ -1837,7 +2173,7 @@ class Py_PSOPS:
         Returns:
             ndarray int32: an array of bus No. of bus i.
         """                
-        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int) if transformer_list is None else transformer_list
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
         for (index, transformer_no) in zip(range(len(transformer_list)), transformer_list):
             self.__intBuffer[index] = self.get_transformer_i_no(transformer_no, sys_no)
         return self.__intBuffer[:len(transformer_list)].astype(np.int32)
@@ -1867,7 +2203,7 @@ class Py_PSOPS:
         Returns:
             ndarray int32: an array of bus No. of bus j.
         """                
-        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int) if transformer_list is None else transformer_list
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
         for (index, transformer_no) in zip(range(len(transformer_list)), transformer_list):
             self.__intBuffer[index] = self.get_transformer_j_no(transformer_no, sys_no)
         return self.__intBuffer[:len(transformer_list)].astype(np.int32)
@@ -1895,7 +2231,7 @@ class Py_PSOPS:
         Returns:
             ndarray, str: an array of bus names of bus i.
         """        
-        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int) if transformer_list is None else transformer_list
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
         return self.get_bus_all_name(None, sys_no)[self.get_transformer_all_i_no(transformer_list, sys_no)]
 
     def get_transformer_j_name(self, transformer_no: int, sys_no=-1):
@@ -1921,7 +2257,7 @@ class Py_PSOPS:
         Returns:
             ndarray, str: an array of bus names of bus j.
         """        
-        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int) if transformer_list is None else transformer_list
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
         return self.get_bus_all_name(None, sys_no)[self.get_transformer_all_j_no(transformer_list, sys_no)]
 
     def get_transformer_sys_no(self, transformer_no: int):
@@ -1947,7 +2283,7 @@ class Py_PSOPS:
         Returns:
             ndarray int: an array of asynchronous system No. 
         """        
-        transformer_list = np.arange(self.get_transformer_number(), dtype=np.int) if transformer_list is None else transformer_list
+        transformer_list = np.arange(self.get_transformer_number(), dtype=np.int32) if transformer_list is None else transformer_list
         for (index, transformer_no) in zip(range(len(transformer_list)), transformer_list):
             self.__intBuffer[index] = self.get_transformer_sys_no(transformer_no)
         return self.__intBuffer[:len(transformer_list)].astype(np.int32)
@@ -1978,10 +2314,348 @@ class Py_PSOPS:
         Returns:
             ndarray: an array of internal No. of transformers.
         """        
-        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int) if transformer_list is None else transformer_list
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
         for (index, transformer_no) in zip(range(len(transformer_list)), transformer_list):
             self.__intBuffer[index] = self.get_transformer_NO(transformer_no, sys_no)
         return self.__intBuffer[:len(transformer_list)]
+
+    def get_transformer_conductance(self, transformer_no: int, sys_no=-1):
+        """Get transformer conductance: the conductance of transformer transformer_no of asynchronous system sys_no.
+           This value is determined in the original computation datafile.
+
+        Args:
+            transformer_no (int): transformer No. in asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            double: the conductance of transformer.
+        """        
+        a_conductance = self.__psDLL.get_Transformer_Conductance(transformer_no, sys_no)
+        assert a_conductance >= -1.0e19, "transformer No is wrong, please check!"
+        return a_conductance
+
+    def get_transformer_all_conductance(self, transformer_list=None, sys_no=-1):
+        """Get transformer conductance: all the conductance of transformers in transformer_list of asynchronous system sys_no.
+           Also see self.get_transformer_conductance().
+
+        Args:
+            transformer_list (list int, optional): list of transformer No. Defaults to None, which means all the transformers.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            ndarray: an array of conductance of transformers.
+        """        
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
+        for (index, transformer_no) in zip(range(len(transformer_list)), transformer_list):
+            self.__doubleBuffer[index] = self.get_transformer_conductance(transformer_no, sys_no)
+        return self.__doubleBuffer[:len(transformer_list)]
+
+    def set_transformer_conductance(self, conductance: float, transformer_no: int, sys_no=-1):
+        """Set transformer conductance: the conductance of transformer transformer_no in asynchronous system sys_no.
+
+        Args:
+            conductance (float): conductance. 
+            transformer_no (int): transformer No. of asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+        """        
+        assert self.__psDLL.set_Transformer_Conductance(conductance, transformer_no, sys_no), "set transformer conductance wrong, please check!"
+
+    def set_transformer_all_conductance(self, conductances: np.ndarray, transformer_list=None, sys_no=-1):
+        """Set transformer conductance: all the conductance of transformers in transformer_list in asynchronous system sys_no.
+
+        Args:
+            conductances (np.ndarray): an array of conductances. 
+            transformer_list (list int, optional): list of transformer No. Defaults to None, which means all the transformers.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+        """        
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
+        assert len(transformer_list) == len(conductances), "conductances length does not match, please cleck"
+        for (conductance, transformer_no) in zip(conductances, transformer_list): self.set_transformer_conductance(conductance, transformer_no, sys_no)
+
+    def get_transformer_susceptance(self, transformer_no: int, sys_no=-1):
+        """Get transformer susceptance: the susceptance of transformer transformer_no of asynchronous system sys_no.
+           This value is determined in the original computation datafile.
+
+        Args:
+            transformer_no (int): transformer No. in asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            double: the susceptance of transformer.
+        """        
+        a_susceptance = self.__psDLL.get_Transformer_Susceptance(transformer_no, sys_no)
+        assert a_susceptance >= -1.0e19, "transformer No is wrong, please check!"
+        return a_susceptance
+
+    def get_transformer_all_susceptance(self, transformer_list=None, sys_no=-1):
+        """Get transformer susceptance: all the susceptance of transformers in transformer_list of asynchronous system sys_no.
+           Also see self.get_transformer_susceptance().
+
+        Args:
+            transformer_list (list int, optional): list of transformer No. Defaults to None, which means all the transformers.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            ndarray: an array of susceptance of transformers.
+        """        
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
+        for (index, transformer_no) in zip(range(len(transformer_list)), transformer_list):
+            self.__doubleBuffer[index] = self.get_transformer_susceptance(transformer_no, sys_no)
+        return self.__doubleBuffer[:len(transformer_list)]
+
+    def set_transformer_susceptance(self, susceptance: float, transformer_no: int, sys_no=-1):
+        """Set transformer susceptance: the susceptance of transformer transformer_no in asynchronous system sys_no.
+
+        Args:
+            susceptance (float): susceptance. 
+            transformer_no (int): transformer No. of asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+        """        
+        assert self.__psDLL.set_Transformer_Susceptance(susceptance, transformer_no, sys_no), "set transformer susceptance wrong, please check!"
+
+    def set_transformer_all_susceptances(self, susceptances: np.ndarray, transformer_list=None, sys_no=-1):
+        """Set transformer susceptance: all the susceptance of transformers in transformer_list in asynchronous system sys_no.
+
+        Args:
+            susceptances (np.ndarray): an array of susceptances. 
+            transformer_list (list int, optional): list of transformer No. Defaults to None, which means all the transformers.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+        """        
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
+        assert len(transformer_list) == len(susceptances), "susceptances length does not match, please cleck"
+        for (susceptance, transformer_no) in zip(susceptances, transformer_list): self.set_transformer_susceptance(susceptance, transformer_no, sys_no)
+
+    def get_transformer_i_tap_ratio(self, transformer_no: int, sys_no=-1):
+        """Get transformer i tap ratio: the i tap ratio of transformer transformer_no of asynchronous system sys_no.
+           This value is determined in the original computation datafile.
+
+        Args:
+            transformer_no (int): transformer No. in asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            double: the i tap ratio of transformer.
+        """        
+        a_tap_ratio = self.__psDLL.get_Transformer_ITap(transformer_no, sys_no)
+        assert a_tap_ratio >= 0, "transformer No is wrong, please check!"
+        return a_tap_ratio
+
+    def get_transformer_all_i_tap_ratio(self, transformer_list=None, sys_no=-1):
+        """Get transformer i tap ratio: all the i tap ratio of transformers in transformer_list of asynchronous system sys_no.
+           Also see self.get_transformer_i_tap_ratio().
+
+        Args:
+            transformer_list (list int, optional): list of transformer No. Defaults to None, which means all the transformers.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            ndarray: an array of i tap ratio of transformers.
+        """        
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
+        for (index, transformer_no) in zip(range(len(transformer_list)), transformer_list):
+            self.__doubleBuffer[index] = self.get_transformer_i_tap_ratio(transformer_no, sys_no)
+        return self.__doubleBuffer[:len(transformer_list)]
+
+    def set_transformer_i_tap_ratio(self, tap_ratio: float, transformer_no: int, sys_no=-1):
+        """Set transformer i tap ratio: the i tap ratio of transformer transformer_no in asynchronous system sys_no.
+
+        Args:
+            tap_ratio (float): tap ratio. 
+            transformer_no (int): transformer No. of asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+        """        
+        assert self.__psDLL.set_Transformer_ITap(tap_ratio, transformer_no, sys_no), "set transformer i tap ratio wrong, please check!"
+
+    def set_transformer_all_i_tap_ratios(self, tap_ratios: np.ndarray, transformer_list=None, sys_no=-1):
+        """Set transformer i tap ratio: all the i tap ratios of transformers in transformer_list in asynchronous system sys_no.
+
+        Args:
+            tap_ratios (np.ndarray): an array of i tap ratios. 
+            transformer_list (list int, optional): list of transformer No. Defaults to None, which means all the transformers.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+        """        
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
+        assert len(transformer_list) == len(tap_ratios), "tap_ratios length does not match, please cleck"
+        for (tap_ratio, transformer_no) in zip(tap_ratios, transformer_list): self.set_transformer_i_tap_ratio(tap_ratio, transformer_no, sys_no)
+
+    def get_transformer_j_tap_ratio(self, transformer_no: int, sys_no=-1):
+        """Get transformer j tap ratio: the j tap ratio of transformer transformer_no of asynchronous system sys_no.
+           This value is determined in the original computation datafile.
+
+        Args:
+            transformer_no (int): transformer No. in asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            double: the j tap ratio of transformer.
+        """        
+        a_tap_ratio = self.__psDLL.get_Transformer_JTap(transformer_no, sys_no)
+        assert a_tap_ratio >= 0, "transformer No is wrong, please check!"
+        return a_tap_ratio
+
+    def get_transformer_all_j_tap_ratio(self, transformer_list=None, sys_no=-1):
+        """Get transformer j tap ratio: all the j tap ratio of transformers in transformer_list of asynchronous system sys_no.
+           Also see self.get_transformer_j_tap_ratio().
+
+        Args:
+            transformer_list (list int, optional): list of transformer No. Defaults to None, which means all the transformers.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            ndarray: an array of j tap ratio of transformers.
+        """        
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
+        for (index, transformer_no) in zip(range(len(transformer_list)), transformer_list):
+            self.__doubleBuffer[index] = self.get_transformer_j_tap_ratio(transformer_no, sys_no)
+        return self.__doubleBuffer[:len(transformer_list)]
+
+    def set_transformer_j_tap_ratio(self, tap_ratio: float, transformer_no: int, sys_no=-1):
+        """Set transformer j tap ratio: the j tap ratio of transformer transformer_no in asynchronous system sys_no.
+
+        Args:
+            tap_ratio (float): tap ratio. 
+            transformer_no (int): transformer No. of asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+        """        
+        assert self.__psDLL.set_Transformer_JTap(tap_ratio, transformer_no, sys_no), "set transformer i tap ratio wrong, please check!"
+
+    def set_transformer_all_j_tap_ratios(self, tap_ratios: np.ndarray, transformer_list=None, sys_no=-1):
+        """Set transformer j tap ratio: all the j tap ratios of transformers in transformer_list in asynchronous system sys_no.
+
+        Args:
+            tap_ratios (np.ndarray): an array of j tap ratios. 
+            transformer_list (list int, optional): list of transformer No. Defaults to None, which means all the transformers.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+        """        
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
+        assert len(transformer_list) == len(tap_ratios), "tap_ratios length does not match, please cleck"
+        for (tap_ratio, transformer_no) in zip(tap_ratios, transformer_list): self.set_transformer_j_tap_ratio(tap_ratio, transformer_no, sys_no)
+
+    def get_transformer_real_conductance(self, transformer_no: int, sys_no=-1):
+        """Get transformer real conductance: the real conductance of transformer transformer_no of asynchronous system sys_no.
+           This value is determined in the original computation datafile.
+
+        Args:
+            transformer_no (int): transformer No. in asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            double: the real conductance of transformer.
+        """        
+        g = self.get_transformer_conductance(transformer_no, sys_no)
+        tki = self.get_transformer_i_tap_ratio(transformer_no, sys_no)
+        tkj = self.get_transformer_j_tap_ratio(transformer_no, sys_no)
+        return g / tki / tkj
+
+    def get_transformer_all_real_conductance(self, transformer_list=None, sys_no=-1):
+        """Get transformer real conductance: all the real conductance of transformers in transformer_list of asynchronous system sys_no.
+           Also see self.get_transformer_real_conductance().
+
+        Args:
+            transformer_list (list int, optional): list of transformer No. Defaults to None, which means all the transformers.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            ndarray: an array of real conductance of transformers.
+        """        
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
+        for (index, transformer_no) in zip(range(len(transformer_list)), transformer_list):
+            self.__doubleBuffer[index] = self.get_transformer_real_conductance(transformer_no, sys_no)
+        return self.__doubleBuffer[:len(transformer_list)]
+
+    def get_transformer_real_susceptance(self, transformer_no: int, sys_no=-1):
+        """Get transformer real susceptance: the real susceptance of transformer transformer_no of asynchronous system sys_no.
+           This value is determined in the original computation datafile.
+
+        Args:
+            transformer_no (int): transformer No. in asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            double: the real susceptance of transformer.
+        """        
+        b = self.get_transformer_susceptance(transformer_no, sys_no)
+        tki = self.get_transformer_i_tap_ratio(transformer_no, sys_no)
+        tkj = self.get_transformer_j_tap_ratio(transformer_no, sys_no)
+        return b / tki / tkj
+
+    def get_transformer_all_real_susceptance(self, transformer_list=None, sys_no=-1):
+        """Get transformer real susceptance: all the real susceptance of transformers in transformer_list of asynchronous system sys_no.
+           Also see self.get_transformer_real_susceptance().
+
+        Args:
+            transformer_list (list int, optional): list of transformer No. Defaults to None, which means all the transformers.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            ndarray: an array of real susceptance of transformers.
+        """        
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
+        for (index, transformer_no) in zip(range(len(transformer_list)), transformer_list):
+            self.__doubleBuffer[index] = self.get_transformer_real_susceptance(transformer_no, sys_no)
+        return self.__doubleBuffer[:len(transformer_list)]
+    
+    def get_transformer_real_resistance(self, transformer_no: int, sys_no=-1):
+        """Get transformer real resistance: the real resistance of transformer transformer_no of asynchronous system sys_no.
+           This value is determined in the original computation datafile.
+
+        Args:
+            transformer_no (int): transformer No. in asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            double: the real resistance of transformer.
+        """        
+        g = self.get_transformer_real_conductance(transformer_no, sys_no)
+        b = self.get_transformer_real_susceptance(transformer_no, sys_no)
+        return g / (g * g + b * b)
+
+    def get_transformer_all_real_resistance(self, transformer_list=None, sys_no=-1):
+        """Get transformer real resistance: all the real resistance of transformers in transformer_list of asynchronous system sys_no.
+           Also see self.get_transformer_real_resistance().
+
+        Args:
+            transformer_list (list int, optional): list of transformer No. Defaults to None, which means all the transformers.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            ndarray: an array of real resistance of transformers.
+        """        
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
+        for (index, transformer_no) in zip(range(len(transformer_list)), transformer_list):
+            self.__doubleBuffer[index] = self.get_transformer_real_resistance(transformer_no, sys_no)
+        return self.__doubleBuffer[:len(transformer_list)]
+    
+    def get_transformer_real_reactance(self, transformer_no: int, sys_no=-1):
+        """Get transformer real reactance: the real reactance of transformer transformer_no of asynchronous system sys_no.
+           This value is determined in the original computation datafile.
+
+        Args:
+            transformer_no (int): transformer No. in asynchronous system sys_no.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            double: the real reactance of transformer.
+        """        
+        g = self.get_transformer_real_conductance(transformer_no, sys_no)
+        b = self.get_transformer_real_susceptance(transformer_no, sys_no)
+        return -b / (g * g + b * b)
+
+    def get_transformer_all_real_reactance(self, transformer_list=None, sys_no=-1):
+        """Get transformer real reactance: all the real reactance of transformers in transformer_list of asynchronous system sys_no.
+           Also see self.get_transformer_real_reactance().
+
+        Args:
+            transformer_list (list int, optional): list of transformer No. Defaults to None, which means all the transformers.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            ndarray: an array of real reactance of transformers.
+        """        
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
+        for (index, transformer_no) in zip(range(len(transformer_list)), transformer_list):
+            self.__doubleBuffer[index] = self.get_transformer_real_reactance(transformer_no, sys_no)
+        return self.__doubleBuffer[:len(transformer_list)]
 
     def get_transformer_current_capacity(self, transformer_no: int, sys_no=-1):
         """Get transformer information: the line current capacity of transformer transformer_no of asynchronous system sys_no.
@@ -2010,7 +2684,7 @@ class Py_PSOPS:
         Returns:
             ndarray, float64: an array of current capacities of transformers.
         """        
-        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int) if transformer_list is None else transformer_list
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
         for (index, transformer_no) in zip(range(len(transformer_list)), transformer_list):
             self.__doubleBuffer[index] = self.get_transformer_current_capacity(transformer_no, sys_no)
         return self.__doubleBuffer[:len(transformer_list)].astype(np.float32)
@@ -2047,7 +2721,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of all transformer power flow results. Array shape is (len(transformer_list), 4).
         """
-        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int) if transformer_list is None else transformer_list
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
         for (index, transformer_no) in zip(range(len(transformer_list)), transformer_list):
             self.get_transformer_lf_result(transformer_no, sys_no, self.__doubleBuffer[index*4:], False)
         return self.__doubleBuffer[:len(transformer_list)*4].reshape(len(transformer_list), 4).astype(np.float32)
@@ -2085,7 +2759,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of transformers simulation results. Array shape is (len(transformer_list), 4).
         """        
-        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int) if transformer_list is None else transformer_list
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
         for (index, transformer_no) in zip(range(len(transformer_list)), transformer_list):
             self.get_transformer_ts_cur_step_result(transformer_no, sys_no, self.__doubleBuffer[index*4:], False)
         return self.__doubleBuffer[:len(transformer_list)*4].reshape(len(transformer_list), 4).astype(np.float32)
@@ -2130,7 +2804,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of transformers simulation results. Array shape is (total_step, len(transformer_list), 4).
         """        
-        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int) if transformer_list is None else transformer_list
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
         self.get_info_ts_finish_step()
         assert self.__cur_total_step >= 0, 'transient simulation not done yet!'
         total_step = self.__cur_total_step + 1
@@ -2160,7 +2834,7 @@ class Py_PSOPS:
         Returns:
             list: a list of transformers information, [[bus i names], [bus j names], [internal No.]]
         """        
-        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int) if transformer_list is None else transformer_list
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
         return [self.get_transformer_all_i_name(transformer_list, sys_no), self.get_transformer_all_j_name(transformer_list, sys_no), self.get_transformer_all_NO(transformer_list, sys_no)]
 
     ################################################################################################
@@ -2204,7 +2878,7 @@ class Py_PSOPS:
         Returns:
             ndarray int: an array of the bus No. of the generators in the generator_list.
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         for (index, generator_no) in zip(range(len(generator_list)), generator_list):
             self.__intBuffer[index] = self.get_generator_bus_no(generator_no, sys_no)
         return self.__intBuffer[:len(generator_list)].astype(np.int32)
@@ -2230,7 +2904,7 @@ class Py_PSOPS:
         Returns:
             ndarray str: an array of the bus names of the generators in the generator_list.
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         return self.get_bus_all_name(None, sys_no)[self.get_generator_all_bus_no(generator_list, sys_no)]
 
     def get_generator_sys_no(self, generator_no: int):
@@ -2255,7 +2929,7 @@ class Py_PSOPS:
         Returns:
             ndarray int: an array of asynchronous system No. of the generators in the generator_list.
         """        
-        generator_list = np.arange(self.get_generator_number(), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(), dtype=np.int32) if generator_list is None else generator_list
         for (index, generator_no) in zip(range(len(generator_list)), generator_list):
             self.__intBuffer[index] = self.get_generator_sys_no(generator_no)
         return self.__intBuffer[:len(generator_list)].astype(np.int32)
@@ -2294,7 +2968,7 @@ class Py_PSOPS:
         Returns:
             ndarray int: an array of power flow bus type of the generators in the generator_list.
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         b_type = list()
         for generator_no in generator_list:
             b_type.append(self.get_generator_lf_bus_type(generator_no, sys_no))
@@ -2310,7 +2984,7 @@ class Py_PSOPS:
         Returns:
             ndarray int: an array of controllable generator No. in the generator_list.
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         all_ctrl = np.arange(self.get_generator_number(None, sys_no)[self.get_generator_all_lf_bus_type(None, sys_no) != 'slack']) if sys_no != -1 else self.__indexCtrlGen
         return generator_list[np.where([gen in all_ctrl for gen in generator_list])]
     
@@ -2324,7 +2998,7 @@ class Py_PSOPS:
         Returns:
             ndarray int: an array of slack generator No. in the generator_list.
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         all_Slack = np.arange(self.get_generator_number(None, sys_no)[self.get_generator_all_lf_bus_type(None, sys_no) == 'slack']) if sys_no != -1 else self.__indexSlack
         return generator_list[np.where([gen in all_Slack for gen in generator_list])]
 
@@ -2352,7 +3026,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of nodal voltage setting values of the generators in the generator_list.
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         for (index, generator_no) in zip(range(len(generator_list)), generator_list): self.__doubleBuffer[index] = self.get_generator_v_set(generator_no, sys_no)
         return self.__doubleBuffer[:len(generator_list)].astype(np.float32)
 
@@ -2375,7 +3049,7 @@ class Py_PSOPS:
             generator_no (int): generator No. of asynchronous system sys_no.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         assert len(vset_array) == len(generator_list), "generator number mismatch, please check!"
         for (vset, generator_no) in zip(vset_array, generator_list): self.set_generator_v_set(vset, generator_no, sys_no)
 
@@ -2403,7 +3077,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of active power generation setting values of the generators in the generator_list.
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         for (index, generator_no) in zip(range(len(generator_list)), generator_list): self.__doubleBuffer[index] = self.get_generator_p_set(generator_no, sys_no)
         return self.__doubleBuffer[:len(generator_list)].astype(np.float32)
 
@@ -2415,6 +3089,8 @@ class Py_PSOPS:
             generator_no (int): generator No. of asynchronous system sys_no.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
+        if self.get_generator_lf_bus_type(generator_no=generator_no, sys_no=sys_no) == 'slack':
+            print(f'Generator {generator_no} of ac system {sys_no} is the slack generator. The modification of its p_set has no effect. Please confirm!!')
         assert self.__psDLL.set_Generator_P0(pset, generator_no, sys_no), "set generator p set wrong, please check!"
 
     def set_generator_all_p_set(self, pset_array: np.ndarray, generator_list=None, sys_no=-1):
@@ -2426,7 +3102,7 @@ class Py_PSOPS:
             generator_no (int): generator No. of asynchronous system sys_no.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         assert len(pset_array) == len(generator_list), "generator number mismatch, please check!"
         for (pset, generator_no) in zip(pset_array, generator_list): self.set_generator_p_set(pset, generator_no, sys_no)
 
@@ -2454,7 +3130,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of upper bounds of nodal voltage of the generators in the generator_list.
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         return self.get_bus_all_vmax(None, sys_no)[self.get_generator_all_bus_no(generator_list, sys_no)]
 
     def get_generator_vmin(self, generator_no: int, sys_no=-1):
@@ -2481,7 +3157,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of lower bounds of nodal voltage setting values of the generators in the generator_list.
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         return self.get_bus_all_vmin(None, sys_no)[self.get_generator_all_bus_no(generator_list, sys_no)]
 
     def get_generator_pmax(self, generator_no: int, sys_no=-1):
@@ -2509,7 +3185,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of upper bounds of active power generation of the generators in the generator_list.
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         for (index, generator_no) in zip(range(len(generator_list)), generator_list): self.__doubleBuffer[index] = self.get_generator_pmax(generator_no, sys_no)
         return self.__doubleBuffer[:len(generator_list)].astype(np.float32)
 
@@ -2539,7 +3215,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of lower bounds of active power generation of the generators in the generator_list.
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         for (index, generator_no) in zip(range(len(generator_list)), generator_list): self.__doubleBuffer[index] = self.get_generator_pmin(generator_no, sys_no)
         return self.__doubleBuffer[:len(generator_list)].astype(np.float32)
 
@@ -2567,7 +3243,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of upper bounds of reactive power generation of the generators in the generator_list.
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         for (index, generator_no) in zip(range(len(generator_list)), generator_list): self.__doubleBuffer[index] = self.get_generator_qmax(generator_no, sys_no)
         return self.__doubleBuffer[:len(generator_list)].astype(np.float32)
 
@@ -2595,7 +3271,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of lower bounds of reactive power generation of the generators in the generator_list.
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         for (index, generator_no) in zip(range(len(generator_list)), generator_list): self.__doubleBuffer[index] = self.get_generator_qmin(generator_no, sys_no)
         return self.__doubleBuffer[:len(generator_list)].astype(np.float32)
 
@@ -2623,7 +3299,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of innertia time constants of the generators in the generator_list.
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         for (index, generator_no) in zip(range(len(generator_list)), generator_list): self.__doubleBuffer[index] = self.get_generator_tj(generator_no, sys_no)
         return self.__doubleBuffer[:len(generator_list)].astype(np.float32)
 
@@ -2651,7 +3327,7 @@ class Py_PSOPS:
         Returns:
             ndarray str: the array of generator ts type names.
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         generator_ts_type_names = list()
         for generator_no in generator_list: generator_ts_type_names.append(self.get_bus_name(generator_no, sys_no))
         return np.array(generator_ts_type_names)
@@ -2676,7 +3352,7 @@ class Py_PSOPS:
             generator_list (list int, optional): the list of generators. Defaults to None, which means all the generators.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         assert len(generator_list) == len(env_type_list) == len(env_value_list), f'Sizes do not match: generator_list ({len(generator_list)}), env_type_list ({len(env_type_list)}), and env_value_list ({len(env_value_list)})'
         for generator_no, env_type, env_value in zip(generator_list, env_type_list, env_value_list): self.set_generator_environment_status(env_type=env_type, env_value=env_value, generator_no=generator_no, sys_no=sys_no)
 
@@ -2710,7 +3386,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of all the power flow results of generators. Array shape is (len(generator_list), 2). 
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         for (index, generator_no) in zip(range(len(generator_list)), generator_list): self.get_generator_lf_result(generator_no, sys_no, self.__doubleBuffer[index*2:], False)
         return self.__doubleBuffer[:len(generator_list)*2].reshape(len(generator_list), 2).astype(np.float32)
 
@@ -2776,7 +3452,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of generator simulation results. Array shape is (len(generator_list), 6).
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         for (index, generator_no) in zip(range(len(generator_list)), generator_list): 
             self.get_generator_ts_cur_step_result(generator_no, sys_no, need_inner_e, self.__doubleBuffer[index*6:], False)
         return self.__doubleBuffer[:len(generator_list)*6].reshape(len(generator_list), 6).astype(np.float32)
@@ -2847,7 +3523,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of generator simulation results. Array shape is (total_step, self.get_generator_number(sys_no), 6).
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         self.get_info_ts_finish_step()
         assert self.__cur_total_step >= 0, 'transient simulation not done yet!'
         total_step = self.__cur_total_step + 1
@@ -3118,7 +3794,7 @@ class Py_PSOPS:
         Returns:
             ndarray int: an array of the bus No. of the loads in the load_list.
         """        
-        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int) if load_list is None else load_list
+        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int32) if load_list is None else load_list
         for (index, load_no) in zip(range(len(load_list)), load_list):
             self.__intBuffer[index] = self.get_load_bus_no(load_no, sys_no)
         return self.__intBuffer[:len(load_list)].astype(np.int32)
@@ -3144,7 +3820,7 @@ class Py_PSOPS:
         Returns:
             ndarray str: an array of the bus names of the loads in the load_list.
         """        
-        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int) if load_list is None else load_list
+        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int32) if load_list is None else load_list
         return self.get_bus_all_name(None, sys_no)[self.get_load_all_bus_no(load_list, sys_no)]
 
     def get_load_sys_no(self, load_no: int):
@@ -3169,7 +3845,7 @@ class Py_PSOPS:
         Returns:
             ndarray int: an array of asynchronous system No. of the loads in the load_list.
         """        
-        load_list = np.arange(self.get_load_number(), dtype=np.int) if load_list is None else load_list
+        load_list = np.arange(self.get_load_number(), dtype=np.int32) if load_list is None else load_list
         for (index, load_no) in zip(range(len(load_list)), load_list):
             self.__intBuffer[index] = self.get_load_sys_no(load_no)
         return self.__intBuffer[:len(load_list)].astype(np.int32)
@@ -3198,7 +3874,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of active power load setting values of the loads in the load_list.
         """        
-        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int) if load_list is None else load_list
+        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int32) if load_list is None else load_list
         for (index, load_no) in zip(range(len(load_list)), load_list):
             self.__doubleBuffer[index] = self.get_load_p_set(load_no, sys_no)
         return self.__doubleBuffer[:len(load_list)].astype(np.float32)
@@ -3223,7 +3899,7 @@ class Py_PSOPS:
             load_no (int): load No. of asynchronous system sys_no.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
-        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int) if load_list is None else load_list
+        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int32) if load_list is None else load_list
         assert len(pset_array) == len(load_list), "load number mismatch, please check!"
         for (pset, load_no) in zip(pset_array, load_list): self.set_load_p_set(pset, load_no, sys_no)
 
@@ -3251,7 +3927,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of reactive power load setting values of the loads in the load_list.
         """        
-        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int) if load_list is None else load_list
+        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int32) if load_list is None else load_list
         for (index, load_no) in zip(range(len(load_list)), load_list):
             self.__doubleBuffer[index] = self.get_load_q_set(load_no, sys_no)
         return self.__doubleBuffer[:len(load_list)].astype(np.float32)
@@ -3275,7 +3951,7 @@ class Py_PSOPS:
             load_no (int): load No. of asynchronous system sys_no.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
-        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int) if load_list is None else load_list
+        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int32) if load_list is None else load_list
         assert len(qset_array) == len(load_list), "load number mismatch, please check!"
         for (qset, load_no) in zip(qset_array, load_list): self.set_load_q_set(qset, load_no, sys_no)
 
@@ -3309,7 +3985,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of all the power flow results of loads. Array shape is (len(load_list), 2). 
         """        
-        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int) if load_list is None else load_list
+        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int32) if load_list is None else load_list
         for (index, load_no) in zip(range(len(load_list)), load_list):
             self.get_load_lf_result(load_no, sys_no, self.__doubleBuffer[index*2:], False)
         return self.__doubleBuffer[:len(load_list)*2].reshape(len(load_list), 2).astype(np.float32)
@@ -3368,7 +4044,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of load simulation results. Array shape is (len(load_list), 4).
         """        
-        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int) if load_list is None else load_list
+        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int32) if load_list is None else load_list
         for (index, load_no) in zip(range(len(load_list)), load_list):
             self.get_load_ts_cur_step_result(load_no, sys_no, need_dynamic_variable, self.__doubleBuffer[index*4:], False)
         return self.__doubleBuffer[:len(load_list)*4].reshape(len(load_list), 4).astype(np.float32)
@@ -3439,7 +4115,7 @@ class Py_PSOPS:
         Returns:
             ndarray float32: an array of load simulation results. Array shape is (total_step, self.get_load_number(sys_no), 4).
         """        
-        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int) if load_list is None else load_list
+        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int32) if load_list is None else load_list
         self.get_info_ts_finish_step()
         assert self.__cur_total_step >= 0, 'transient simulation not done yet!'
         total_step = self.__cur_total_step + 1
@@ -3516,7 +4192,7 @@ class Py_PSOPS:
         Returns:
             ndarray int: an array of the asynchronous system No.
         """        
-        bus_list = np.arange(self.__nBus, dtype=np.int) if bus_list is None else bus_list
+        bus_list = np.arange(self.__nBus, dtype=np.int32) if bus_list is None else bus_list
         for (index, bus_no) in zip(range(len(bus_list)), bus_list):
             self.__intBuffer[index] = self.get_network_bus_connectivity_flag(bus_no, sys_no)
         return self.__intBuffer[:len(bus_list)].astype(np.int32)
@@ -3544,10 +4220,10 @@ class Py_PSOPS:
         Returns:
             ndarray bool: an array of acline connectivity.
         """        
-        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int) if acline_list is None else acline_list
+        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int32) if acline_list is None else acline_list
         for (index, acline_no) in zip(range(len(acline_list)),acline_list):
             self.__boolBuffer[index] = self.get_network_acline_connectivity(acline_no, sys_no)
-        return self.__boolBuffer[:len(acline_list)].astype(np.bool)
+        return self.__boolBuffer[:len(acline_list)].astype(bool)
 
     def set_network_acline_connectivity(self, cmark: bool, acline_no: int, sys_no=-1):
         """Set network information: the connectivity of acline acline_no in asynchronous system sys_no.
@@ -3567,7 +4243,7 @@ class Py_PSOPS:
             acline_list (list int, optional): list of acline No. Defaults to None, which means all the aclines.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
-        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int) if acline_list is None else acline_list
+        acline_list = np.arange(self.get_acline_number(sys_no), dtype=np.int32) if acline_list is None else acline_list
         assert len(acline_list) == len(cmarks), "marks length does not match, please cleck"
         for (cmark, acline_no) in zip(cmarks, acline_list): self.set_network_acline_connectivity(cmark, acline_no, sys_no)
 
@@ -3594,10 +4270,10 @@ class Py_PSOPS:
         Returns:
             ndarray bool: an array of transformer connectivity.
         """        
-        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int) if transformer_list is None else transformer_list
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
         for (index, transformer_no) in zip(range(len(transformer_list)), transformer_list):
             self.__boolBuffer[index] = self.get_network_transformer_connectivity(transformer_no, sys_no)
-        return self.__boolBuffer[:len(transformer_list)].astype(np.bool)
+        return self.__boolBuffer[:len(transformer_list)].astype(bool)
 
     def set_network_transformer_connectivity(self, cmark: bool, transformer_no: int, sys_no=-1):
         """Set network information: the connectivity of transformer transformer_no in asynchronous system sys_no.
@@ -3617,7 +4293,7 @@ class Py_PSOPS:
             transformer_list (list int, optional): list of transformer No. Defaults to None, which means all the transformers.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
-        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int) if transformer_list is None else transformer_list
+        transformer_list = np.arange(self.get_transformer_number(sys_no), dtype=np.int32) if transformer_list is None else transformer_list
         assert len(transformer_list) == len(cmarks), "marks length does not match, please cleck"
         for (cmark, transformer_no) in zip(cmarks, transformer_list): self.set_network_transformer_connectivity(cmark, transformer_no, sys_no)
 
@@ -3649,10 +4325,10 @@ class Py_PSOPS:
         Returns:
             ndarray bool: an array of generator connectivity.
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         for (index, generator_no) in zip(range(len(generator_list)), generator_list):
             self.__boolBuffer[index] = self.get_network_generator_connectivity(generator_no, sys_no)
-        return self.__boolBuffer[:len(generator_list)].astype(np.bool)
+        return self.__boolBuffer[:len(generator_list)].astype(bool)
 
     def set_network_generator_connectivity(self, cmark: bool, generator_no: int, sys_no=-1):
         """Set network information: the connectivity of generator generator_no in asynchronous system sys_no.
@@ -3672,7 +4348,7 @@ class Py_PSOPS:
             generator_list (list int, optional): list of generator No. Defaults to None, which means all the generators.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
-        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int) if generator_list is None else generator_list
+        generator_list = np.arange(self.get_generator_number(sys_no), dtype=np.int32) if generator_list is None else generator_list
         assert len(generator_list) == len(cmarks), "marks length does not match, please cleck!"
         for (cmark, generator_no) in zip(cmarks, generator_list): self.set_network_generator_connectivity(cmark, generator_no, sys_no)
     
@@ -3699,10 +4375,10 @@ class Py_PSOPS:
         Returns:
             ndarray bool: an array of load connectivity.
         """        
-        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int) if load_list is None else load_list
+        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int32) if load_list is None else load_list
         for (index, load_no) in zip(range(len(load_list)), load_list):
             self.__boolBuffer[index] = self.get_network_load_connectivity(load_no, sys_no)
-        return self.__boolBuffer[:len(load_list)].astype(np.bool)
+        return self.__boolBuffer[:len(load_list)].astype(bool)
 
     def set_network_load_connectivity(self, cmark: bool, load_no: int, sys_no=-1):
         """Set network information: the connectivity of load load_no in asynchronous system sys_no.
@@ -3722,7 +4398,7 @@ class Py_PSOPS:
             load_list (list int, optional): list of load No. Defaults to None, which means all the loads.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
-        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int) if load_list is None else load_list
+        load_list = np.arange(self.get_load_number(sys_no), dtype=np.int32) if load_list is None else load_list
         assert len(load_list) == len(cmarks), "marks length does not match, please cleck!"
         for (cmark, load_no) in zip(cmarks, load_list): self.set_network_load_connectivity(cmark, load_no, sys_no)
 
@@ -3838,7 +4514,7 @@ class Py_PSOPS:
             assert n_sample < 100, "topology sample failed, please check!"
         self.set_network_rebuild_all_network_data()
         # print([[line_no, self.get_acline_info(line_no, sys_no)] for line_no in selected_no])
-        return [[line_no, self.get_acline_info(line_no, sys_no)] for line_no in selected_no]
+        return [[line_no] + self.get_acline_info(line_no) for line_no in selected_no]
 
     ################################################################################################
     # fault and disturbance
@@ -3847,6 +4523,24 @@ class Py_PSOPS:
         """Set fault and disturbance information: clear all the faults and disturbances.
         """        
         assert self.__psDLL.set_Fault_Disturbance_Clear_All() is True, "clear fault and disturbance failed, please check!"
+
+    def set_fault(self, fault_type: int, fault_dis: float, start_time: float, end_time: float, ele_type: int, ele_pos: int, mod_flg: bool, sys_no=-1):
+        """Set fault and disturbance information: add an acline fault according to settings in asynchronous system sys_no.
+
+        Args:
+            fault_type (int): fault type, 0-three phase fault, 1-three phase disconnection
+            fault_dis (float): fault distance, 0-100.
+            start_time (float): starting time. The fault happens at this time.
+            end_time (float): end time. The fault ends at this time.
+            ele_type (int): component type, 0-acline, 1-transformer.
+            ele_pos (int): acline No. of the fault acline.
+            mod_flg (bool): flag of modification, False-add new disturbance, True-modify exsiting disturbance.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+        
+        Returns:
+            bool: whether the acline is set successfully.
+        """        
+        return self.__psDLL.set_Fault_Disturbance_Add_Fault(fault_type, fault_dis, start_time, end_time, ele_type, ele_pos, mod_flg, sys_no)
 
     def set_fault_disturbance_add_acline(self, fault_type: int, fault_dis: float, start_time: float, end_time: float, ele_pos: int, sys_no=-1):
         """Set fault and disturbance information: add an acline fault according to settings in asynchronous system sys_no.
@@ -3859,7 +4553,8 @@ class Py_PSOPS:
             ele_pos (int): acline No. of the fault acline.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
-        assert self.__psDLL.set_Fault_Disturbance_Add_Fault(fault_type, fault_dis, start_time, end_time, 0, ele_pos, False, sys_no), "add fault acline failed, please check!"
+        assert self.set_fault(fault_type, fault_dis, start_time, end_time, 0, ele_pos, False, sys_no), \
+            f'add fault acline failed, {[fault_type, fault_dis, start_time, end_time, ele_pos, sys_no]}, please check!'
 
     def set_fault_disturbance_change_acline(self, fault_type: int, fault_dis: float, start_time: float, end_time: float, ele_pos: int, sys_no=-1):
         """Set fault and disturbance information: change an acline fault according to settings in asynchronous system sys_no.
@@ -3872,7 +4567,8 @@ class Py_PSOPS:
             ele_pos (int): acline No. of the fault acline.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
-        assert self.__psDLL.set_Fault_Disturbance_Add_Fault(fault_type, fault_dis, start_time, end_time, 0, ele_pos, True, sys_no), "change fault acline failed, please check!"
+        assert self.set_fault(fault_type, fault_dis, start_time, end_time, 0, ele_pos, True, sys_no), \
+            f'change fault acline failed, {[fault_type, fault_dis, start_time, end_time, ele_pos, sys_no]}, please check!'
 
     def set_fault_disturbance_add_transformer(self, fault_type: int, fault_dis: float, start_time: float, end_time: float, ele_pos: int, sys_no=-1):
         """Set fault and disturbance information: add an transformer fault according to settings in asynchronous system sys_no.
@@ -3885,7 +4581,8 @@ class Py_PSOPS:
             ele_pos (int): transformer No. of the fault transformer.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
-        assert self.__psDLL.set_Fault_Disturbance_Add_Fault(fault_type, fault_dis, start_time, end_time, 1, ele_pos, False, sys_no), "add fault transformer failed, please check!"
+        assert self.set_fault(fault_type, fault_dis, start_time, end_time, 1, ele_pos, False, sys_no), \
+            f'add fault transformer failed, {[fault_type, fault_dis, start_time, end_time, ele_pos, sys_no]}, please check!'
 
     def set_fault_change_transformer(self, fault_type: int, fault_dis: float, start_time: float, end_time: float, ele_pos: int, sys_no=-1):
         """Set fault and disturbance information: change an transformer fault according to settings in asynchronous system sys_no.
@@ -3898,8 +4595,26 @@ class Py_PSOPS:
             ele_pos (int): transformer No. of the fault transformer.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
-        assert self.__psDLL.set_Fault_Disturbance_Add_Fault(fault_type, fault_dis, start_time, end_time, 1, ele_pos, True, sys_no), "change fault transformer failed, please check!"
+        assert self.set_fault(fault_type, fault_dis, start_time, end_time, 1, ele_pos, True, sys_no), \
+            f'change fault transformer failed, {[fault_type, fault_dis, start_time, end_time, ele_pos, sys_no]}, please check!'
 
+    def set_disturbance(self, dis_type: int, dis_time: float, dis_per: float, ele_type: int, ele_pos: int, mod_flg: bool, sys_no=-1):
+        """Set disturbance information: basic disturbance set.
+
+        Args:
+            dis_type (int): disturbance type, 0-tripping.
+            dis_time (float): fault time. The disturbance happens at this time.
+            dis_per (float): disturbance percentage, 0-1. dis_per of the generator is subjected to the disturbance.
+            ele_type (int): component type, 0-generator, 1-load.
+            ele_pos (int): component No. of the fault component.
+            mod_flg (bool): flag of modification, False-add new disturbance, True-modify exsiting disturbance.
+            sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
+
+        Returns:
+            bool: whether the disturbance is set successfully.
+        """        
+        return self.__psDLL.set_Fault_Disturbance_Add_Disturbance(dis_type, dis_time, dis_per, ele_type, ele_pos, mod_flg, sys_no)
+    
     def set_fault_disturbance_add_generator(self, dis_type: int, dis_time: float, dis_per: float, ele_pos: int, sys_no=-1):
         """Set fault and disturbance information: add an generator fault according to settings in asynchronous system sys_no.
 
@@ -3910,7 +4625,8 @@ class Py_PSOPS:
             ele_pos (int): generator No. of the fault generator.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
-        assert self.__psDLL.set_Fault_Disturbance_Add_Disturbance(dis_type, dis_time, dis_per, 0, ele_pos, False, sys_no), "add disturbance generator failed, please check!"
+        assert self.set_disturbance(dis_type, dis_time, dis_per, 0, ele_pos, False, sys_no), \
+            f'add disturbance generator failed, {[dis_type, dis_time, dis_per, ele_pos, sys_no]}, please check!'
 
     def set_fault_disturbance_change_generator(self, dis_type: int, dis_time: float, dis_per: float, ele_pos: int, sys_no=-1):
         """Set fault and disturbance information: change an generator fault according to settings in asynchronous system sys_no.
@@ -3922,7 +4638,8 @@ class Py_PSOPS:
             ele_pos (int): generator No. of the fault generator.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
-        assert self.__psDLL.set_Fault_Disturbance_Add_Disturbance(dis_type, dis_time, dis_per, 0, ele_pos, True, sys_no), "change disturbance generator failed, please check!"
+        assert self.set_disturbance(dis_type, dis_time, dis_per, 0, ele_pos, True, sys_no), \
+            f'change disturbance generator failed, {[dis_type, dis_time, dis_per, ele_pos, sys_no]}, please check!'
 
     def set_fault_disturbance_add_load(self, dis_type: int, dis_time: float, dis_per: float, ele_pos: int, sys_no=-1):
         """Set fault and disturbance information: add an load fault according to settings in asynchronous system sys_no.
@@ -3934,7 +4651,8 @@ class Py_PSOPS:
             ele_pos (int): load No. of the fault load.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
-        assert self.__psDLL.set_Fault_Disturbance_Add_Disturbance(dis_type, dis_time, dis_per, 1, ele_pos, False, sys_no), "add disturbance load failed, please check!"
+        assert self.set_disturbance(dis_type, dis_time, dis_per, 1, ele_pos, False, sys_no), \
+            f'add disturbance load failed, {[dis_type, dis_time, dis_per, ele_pos, sys_no]}, please check!'
 
     def set_fault_disturbance_change_load(self, dis_type: int, dis_time: float, dis_per: float, ele_pos: int, sys_no=-1):
         """Set fault and disturbance information: change an load fault according to settings in asynchronous system sys_no.
@@ -3946,7 +4664,8 @@ class Py_PSOPS:
             ele_pos (int): load No. of the fault load.
             sys_no (int, optional): asynchronous ac system No. to limit the output range. Defaults to -1, which means the whole network.
         """        
-        assert self.__psDLL.set_Fault_Disturbance_Add_Disturbance(dis_type, dis_time, dis_per, 1, ele_pos, True, sys_no), "change disturbance load failed, please check!"
+        assert self.set_disturbance(dis_type, dis_time, dis_per, 1, ele_pos, True, sys_no), \
+            f'change disturbance load failed, {[dis_type, dis_time, dis_per, ele_pos, sys_no]}, please check!'
 
     ################################################################################################
     # Supplement

@@ -5,6 +5,7 @@ import pathlib
 from numpy.core.arrayprint import dtype_is_implied
 from numpy.random import sample
 import ray
+from tqdm import tqdm
 import collections
 import pickle
 from sklearn.model_selection import train_test_split
@@ -177,14 +178,157 @@ def read_result(f_path):
 
 
 class SampleGenerator:
-    def __init__(self, worker_no, total_worker):
+    def __init__(self, worker_no, total_worker, basic_seed):
         self.workerNo = worker_no
         self.totalWorker = total_worker
-        self.rng = np.random.default_rng(self.workerNo)
+        self.seed = 42 + worker_no * 42 * basic_seed + worker_no
+        self.rng = np.random.default_rng(self.seed)
         # self.__rng = np.random.default_rng()
         self.api = Py_PSOPS(flg=self.workerNo, rng=self.rng)
         # self.env = sopf_Env(rng=self.__rng, test_on=True)
         # self.env.set_flg(worker_no)
+
+    def ts_sampler_basic(
+            self, 
+            result_path, 
+            total_num=1, 
+            round_num=10, 
+            cut_length=31, 
+            test_per=0.2
+    ):
+        api = self.api
+
+        result_path = pathlib.Path(result_path)
+        if not result_path.exists(): result_path.mkdir()
+        print(str(result_path.absolute()))
+
+        # random selection range
+        aclines = np.arange(api.get_acline_number())
+        fault_duration = 0.08 + np.arange(13) * 0.01
+        total_step = api.get_info_ts_max_step()
+        cut_length = min(total_step, cut_length)
+        
+        sampled = tqdm(total=total_num)
+        stable_num = tqdm(total=max(int(total_num*0.25), 1))
+        rotor_unstable_num = tqdm(total=max(int(total_num*0.25), 1))
+        volt_unstable_num = tqdm(total=max(int(total_num*0.25), 1))
+        freq_unstable_num = tqdm(total=max(int(total_num*0.25), 1))
+        topo_list = list()
+        fault_list = list()
+        label_list = np.zeros([total_num], dtype=float)
+        system_list = np.zeros([total_num, cut_length, 6], dtype=float)
+        delta_list = np.zeros([total_num, cut_length, api.get_generator_number()], dtype=float)
+        volt_list = np.zeros([total_num, cut_length, api.get_bus_number()], dtype=float)
+        transfer_list = np.zeros([total_num, cut_length, api.get_acline_number()], dtype=float)
+        admittance_list = np.zeros([total_num, 3, 2, api.get_bus_number(), api.get_bus_number()], dtype=float)
+        impedance_list = np.zeros([total_num, 3, 2, api.get_bus_number(), api.get_bus_number()], dtype=float)
+        fac_imp_LD_list = np.zeros([total_num, 3, api.get_network_n_inverse_non_zero()+api.get_bus_number(), 6], dtype=float)
+        fac_imp_U_list = np.zeros([total_num, 3, api.get_network_n_inverse_non_zero()+api.get_bus_number(), 6], dtype=float)
+        fac_imp_Diag_list = np.zeros([total_num, 3, api.get_bus_number(), 6], dtype=float)
+
+        topo_no = 0
+        tmp_list = list()
+        cur_fault = list()
+        while(1):
+            # topo sampling
+            topo_sample = api.get_network_topology_sample(topo_change=int(topo_no%3))
+            # power flow sampling
+            pf_samples = api.get_power_flow_sample_stepwise(num=round_num, check_voltage=False, termination_num=500)
+            if len(pf_samples) == 0: continue
+            # ts sampling
+            for pf_no in range(len(pf_samples)):
+                # restore power flow
+                api.set_power_flow_initiation(pf_samples[pf_no])
+                api.cal_power_flow_basic_nr()
+                for fault_no in range(round_num):
+                    # fault line sample, n-1 or n-2
+                    while True:
+                        tmp_list = self.rng.choice(aclines, int(fault_no%2)+1, False)
+                        api.set_network_acline_all_connectivity([False]*(int(fault_no%2)+1), tmp_list)
+                        if api.get_network_n_acsystem_check_connectivity() == 1: break
+                        api.set_network_acline_all_connectivity([True]*(int(fault_no%2)+1), tmp_list)
+                    api.set_network_acline_all_connectivity([True]*(int(fault_no%2)+1), tmp_list)
+                    # line fault setting
+                    cur_fault.clear()
+                    api.set_fault_disturbance_clear_all()
+                    for acline_no in tmp_list:
+                        loc = self.rng.choice([0, 100])
+                        f_time = self.rng.choice(fault_duration)
+                        cur_fault.append([acline_no] + api.get_acline_info(acline_no) + [loc, f_time])
+                        api.set_fault_disturbance_add_acline(0, loc, 0.0, f_time, acline_no)
+                        api.set_fault_disturbance_add_acline(1, loc, f_time, 10., acline_no)
+                    # simulation
+                    fin_step = api.cal_transient_stability_simulation_ti_sv()
+                    if fin_step < cut_length: continue
+                    # label determination
+                    label = api.get_transient_stability_check_stability()
+                    if label == 0 and stable_num.n >= stable_num.total: continue
+                    if label == 1 and rotor_unstable_num.n >= rotor_unstable_num.total: continue
+                    if label == 2 and volt_unstable_num.n >= volt_unstable_num.total: continue
+                    if label == 3 and freq_unstable_num.n >= freq_unstable_num.total: continue
+                    sim_valid, start_topo, result_all, result_ang, result_vol, result_tran, adm_list, imp_list, fac_imp_list = api.get_transient_stability_all_relevant_data()
+                    if sim_valid == False: continue
+                    # save results
+                    label_list[sampled.n] = label
+                    system_list[sampled.n, :, :] = result_all[:cut_length]
+                    delta_list[sampled.n, :, :] = result_ang[:cut_length, :, 0]
+                    volt_list[sampled.n, :, :] = result_vol[:cut_length, :, 0]
+                    transfer_list[sampled.n, :, :] = result_tran[:cut_length, :, 0]
+                    # save topo and faults
+                    topo_list.append(topo_sample)
+                    fault_list.append(cur_fault.copy())
+                    # topo matrix
+                    admittance_list[sampled.n, :, :, :, :] = adm_list[:, :, :, :]
+                    impedance_list[sampled.n, :, :, :, :] = imp_list[:, :, :, :]
+                    for f_step in range(3):
+                        fac_imp_LD_list[sampled.n, f_step, :, :] = fac_imp_list[f_step][0]
+                        fac_imp_U_list[sampled.n, f_step, :, :] = fac_imp_list[f_step][1]
+                        fac_imp_Diag_list[sampled.n, f_step, :, :] = fac_imp_list[f_step][2]
+                    # sample count
+                    sampled.update(1)
+                    if label == 0: stable_num.update(1)
+                    if label == 1: rotor_unstable_num.update(1)
+                    if label == 2: volt_unstable_num.update(1)
+                    if label == 3: freq_unstable_num.update(1)
+                    if sampled.n >= total_num: break
+                if sampled.n >= total_num: break
+            if sampled.n >= total_num: break
+            topo_no += 1
+        
+        total_idx = np.arange(total_num)
+        train_idx, test_idx = train_test_split(total_idx, test_size=test_per, random_state=42)
+
+        topo_list = np.array(topo_list, dtype=object)
+        fault_list = np.array(fault_list, dtype=object)
+        
+        np.savez(result_path / f'training.{self.workerNo}.{self.seed}.npz', 
+                 label=label_list[train_idx], 
+                 topo=topo_list[train_idx], 
+                 fault=fault_list[train_idx], 
+                 sys=system_list[train_idx], 
+                 delta=delta_list[train_idx], 
+                 volt=volt_list[train_idx], 
+                 transfer=transfer_list[train_idx],
+                 admittance=admittance_list[train_idx],
+                 impedance=impedance_list[train_idx],
+                 fipld=fac_imp_LD_list[train_idx],
+                 fipu=fac_imp_U_list[train_idx],
+                 fipdiag=fac_imp_Diag_list[train_idx]
+                 )
+        np.savez(result_path / f'testing.{self.workerNo}.{self.seed}.npz', 
+                 label=label_list[test_idx], 
+                 topo=topo_list[test_idx], 
+                 fault=fault_list[test_idx], 
+                 sys=system_list[test_idx], 
+                 delta=delta_list[test_idx], 
+                 volt=volt_list[test_idx], 
+                 transfer=transfer_list[test_idx],
+                 admittance=admittance_list[test_idx],
+                 impedance=impedance_list[test_idx],
+                 fipld=fac_imp_LD_list[test_idx],
+                 fipu=fac_imp_U_list[test_idx],
+                 fipdiag=fac_imp_Diag_list[test_idx]
+                 )
 
     def ts_sampler_simple_random_for_avr_1(self, 
                                            gen_no, 
@@ -1363,7 +1507,7 @@ class SampleGenerator:
         aclines = np.arange(api.get_acline_number())
         fault_duration = 0.08 + np.arange(13) * 0.01
         total_step = api.get_info_ts_max_step()
-        length = min(total_step, cut_length)
+        cut_length = min(total_step, cut_length)
         
         sampled = 0
         stable_num = 0
@@ -1376,16 +1520,18 @@ class SampleGenerator:
         delta_list = np.zeros([total_num, cut_length, api.get_generator_number()], dtype=float)
         volt_list = np.zeros([total_num, cut_length, api.get_bus_number()], dtype=float)
         transfer_list = np.zeros([total_num, cut_length, api.get_acline_number()], dtype=float)
+
         tmp_list = list()
         cur_fault = list()
         for topo_no in range(total_num):
             # topo sampling
-            topo_sample = [api.get_network_topology_sample(topo_change=int(topo_no%3))]
-            # if topo_sample is not None and len(topo_sample) == 2 and topo_sample[0][0] == 15 and topo_sample[1][0] == 28:
-                # topo_no = topo_no
+            topo_sample = api.get_network_topology_sample(topo_change=int(topo_no%3))
+            # if topo_sample is not None and len(topo_sample) == 2 and ((topo_sample[0][0] == 15 and topo_sample[1][0] == 28) or (topo_sample[0][0] == 28 and topo_sample[1][0] == 15)):
+                # continue
             print(topo_sample)    
             # power flow sampling
-            pf_samples = api.get_power_flow_sample_stepwise(num=round_num, check_voltage=False)
+            pf_samples = api.get_power_flow_sample_stepwise(num=round_num, check_voltage=False, termination_num=500)
+            if len(pf_samples) == 0: continue
             # ts sampling
             for pf_no in range(len(pf_samples)):
                 # restore power flow
@@ -1517,8 +1663,8 @@ class SampleGenerator:
 
 @ray.remote
 class RayWorkerForSampleGenerator(SampleGenerator):
-    def __init__(self, worker_no, total_worker):
-        super().__init__(worker_no, total_worker)
+    def __init__(self, worker_no, total_worker, basic_seed):
+        super().__init__(worker_no, total_worker, basic_seed)
 
     def rigid_grid_search(self):
         # 39
